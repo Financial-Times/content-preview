@@ -17,7 +17,7 @@ func main() {
 		log.Fatalf("Unexpected status code %d", resp.StatusCode)
 	}
 
-	err = io.Copy(os.Stdout, resp.Body)
+	_, err = io.Copy(os.Stdout, resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
