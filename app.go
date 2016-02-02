@@ -11,23 +11,17 @@ import (
 func main() {
 	server()
 
-
-
 }
-
-
 
 func server() {
 	r := mux.NewRouter()
-	r.HandleFunc("/content-preview/{uuid}", fooHandler)
+	r.HandleFunc("/content-preview/{uuid}", contentPreviewHandler)
 	http.Handle("/", r)
-
-	//http.HandleFunc("/content-preview", fooHandler)
 
 	log.Fatal(http.ListenAndServe(":8084", nil))
 }
 
-func fooHandler(w http.ResponseWriter, r *http.Request) {
+func contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("received request");
 
 	vars := mux.Vars(r)
@@ -38,42 +32,37 @@ func fooHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	methode := "http://methode-api-uk-p.svc.ft.com/eom-file/" + uuid
-	body, err := curl(methode)
+	mapiResp, err := http.Get(methode)
+
 	if err !=nil {
 		log.Fatal(err)
 	}
+	if mapiResp.StatusCode !=200 {
+		if mapiResp.StatusCode == 404 {
+			w.WriteHeader(http.StatusNotFound);
+			return
+		}
+		//TODO break this down
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+
+	// order of writing a response
+	//header
+	//responseCode
+	//body
+
 	matUrl := "http://ftapp05951-lvpr-uk-int:8080/content-transform/" + uuid
-	resp, err := http.Post(matUrl, "application/json", body)
+	matResp, err := http.Post(matUrl, "application/json", mapiResp.Body)
 
-	if err !=nil {
-		log.Fatal(err)
+	if matResp.StatusCode !=200 {
+		//TODO break this down
+		fmt.Printf("---the status code %v", matResp.StatusCode)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	if resp.StatusCode != 200 {
-		//TODO
-		fmt.Printf("---the status code %v", resp.StatusCode)
-
-	}
-
-	fmt.Printf("the status code %v", resp.StatusCode)
-	io.Copy(w, resp.Body)
+	fmt.Printf("the status code %v", matResp.StatusCode)
+	io.Copy(w, matResp.Body)
 }
 
-
-func curl(url string) (respBody io.ReadCloser, err error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if resp.StatusCode != 200 {
-		log.Fatalf("Unexpected status code %d", resp.StatusCode)
-	}
-
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	return resp.Body, err
-}
