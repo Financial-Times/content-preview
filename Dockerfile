@@ -8,7 +8,7 @@ RUN apk add --update bash \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && mkdir -p $GOPATH/src/${REPO_PATH} \
-  && mv v1-suggestor/* $GOPATH/src/${REPO_PATH} \
+  && mv content-preview/* $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t ./... \
   && go test ./... \
