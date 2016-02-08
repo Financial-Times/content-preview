@@ -1,27 +1,41 @@
 package main
 
 import (
+	"os"
 	"io"
 	"log"
 	"net/http"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/jawher/mow.cli"
+
 )
 
 func main() {
-	server()
+	app := cli.App("content-preview", "A RESTful API for retrieving and transforming content preview data")
+	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
+	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
+	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "Host and path for MAT")
+
+	app.Action = func() {
+		r := mux.NewRouter()
+		handler := Handlers{*mapiAuth, *mapiUri, *matUri}
+		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
+		http.Handle("/", r)
+
+		log.Fatal(http.ListenAndServe(":8084", nil))
+	}
+	app.Run(os.Args)
 
 }
 
-func server() {
-	r := mux.NewRouter()
-	r.HandleFunc("/content-preview/{uuid}", contentPreviewHandler)
-	http.Handle("/", r)
-
-	log.Fatal(http.ListenAndServe(":8084", nil))
+type Handlers struct {
+	mapiAuth string
+	mapiUri string
+	matUri string
 }
 
-func contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("received request");
 
 	vars := mux.Vars(r)
@@ -31,8 +45,17 @@ func contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("missing UUID")
 	}
 
-	methode := "http://methode-api-uk-p.svc.ft.com/eom-file/" + uuid
-	mapiResp, err := http.Get(methode)
+	log.Printf(h.mapiAuth);
+	log.Printf(h.mapiUri);
+	methode := h.mapiUri + uuid
+
+
+	client := &http.Client{}
+	mapReq, _ := http.NewRequest("GET", methode, nil)
+	mapReq.Header.Set("Authorization", h.mapiAuth)
+	mapiResp, err := client.Do(mapReq)
+
+
 
 	if err !=nil {
 		log.Fatal(err)
@@ -52,7 +75,7 @@ func contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	//responseCode
 	//body
 
-	matUrl := "http://ftapp05951-lvpr-uk-int:8080/content-transform/" + uuid
+	matUrl := h.matUri + uuid
 	matResp, err := http.Post(matUrl, "application/json", mapiResp.Body)
 
 	if matResp.StatusCode !=200 {
