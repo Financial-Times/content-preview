@@ -15,13 +15,15 @@ func main() {
 	app := cli.App("content-preview", "A RESTful API for retrieving and transforming content preview data")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
 	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
-	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Host and path for MAT")
+	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Hostheader for MAT")
 	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "Host and path for MAT")
 
 	app.Action = func() {
 		r := mux.NewRouter()
 		handler := Handlers{*mapiAuth, *mapiUri, *matUri, *matHostHeader}
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
+		r.HandleFunc("/build-info", handler.buildInfoHandler)
+		r.HandleFunc("/ping", pingHandler)
 		http.Handle("/", r)
 
 		log.Fatal(http.ListenAndServe(":8084", nil))
@@ -35,6 +37,14 @@ type Handlers struct {
 	mapiUri string
 	matUri string
 	matHostHeader string
+}
+
+func pingHandler(w http.ResponseWriter, r *http.Request){
+
+}
+
+func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request){
+
 }
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +63,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 
 	client := &http.Client{}
-	mapReq, _ := http.NewRequest("GET", methode, nil)
+	mapReq, err := http.NewRequest("GET", methode, nil)
 	mapReq.Header.Set("Authorization", "Basic " + h.mapiAuth)
 	mapiResp, err := client.Do(mapReq)
 
@@ -75,11 +85,11 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	//header
 	//responseCode
 	//body
-
+	client2 := &http.Client{}
 	matUrl := h.matUri + uuid
-	matReq, _ := http.NewRequest("POST", matUrl, mapiResp.Body)
+	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Header.Set("Host", h.matHostHeader)
-	matResp, err := client.Do(mapReq)
+	matResp, err := client2.Do(mapReq)
 
 	if matResp.StatusCode !=200 {
 		//TODO break this down
