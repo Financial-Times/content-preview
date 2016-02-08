@@ -17,4 +17,4 @@ RUN apk add --update bash \
   && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
 
-CMD exec /content-preview-app --mapi-auth=$MAPI_AUTH --mapi-uri=$MAPI_URI --mat-uri=$MAT_URI
+CMD exec /content-preview-app --mapi-auth $MAPI_AUTH --mapi-uri $MAPI_URI --mat-uri $MAT_URI
