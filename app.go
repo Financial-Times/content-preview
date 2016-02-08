@@ -15,11 +15,12 @@ func main() {
 	app := cli.App("content-preview", "A RESTful API for retrieving and transforming content preview data")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
 	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
+	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Host and path for MAT")
 	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "Host and path for MAT")
 
 	app.Action = func() {
 		r := mux.NewRouter()
-		handler := Handlers{*mapiAuth, *mapiUri, *matUri}
+		handler := Handlers{*mapiAuth, *mapiUri, *matUri, *matHostHeader}
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
 		http.Handle("/", r)
 
@@ -33,6 +34,7 @@ type Handlers struct {
 	mapiAuth string
 	mapiUri string
 	matUri string
+	matHostHeader string
 }
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +54,8 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 	client := &http.Client{}
 	mapReq, _ := http.NewRequest("GET", methode, nil)
-	mapReq.Header.Set("Authorization", h.mapiAuth)
+	mapReq.Header.Set("Authorization", "Basic " + h.mapiAuth)
 	mapiResp, err := client.Do(mapReq)
-
 
 
 	if err !=nil {
@@ -76,7 +77,9 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	//body
 
 	matUrl := h.matUri + uuid
-	matResp, err := http.Post(matUrl, "application/json", mapiResp.Body)
+	matReq, _ := http.NewRequest("POST", matUrl, mapiResp.Body)
+	matReq.Header.Set("Host", h.matHostHeader)
+	matResp, err := client.Do(mapReq)
 
 	if matResp.StatusCode !=200 {
 		//TODO break this down
