@@ -13,7 +13,8 @@ RUN apk add --update bash \
   && go get -t ./... \
   && go test ./... \
   && go build \
+  && mv content-preview /content-preview-app \
   && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
 
-CMD exec /content-preview --mapi-auth=$MAPI_AUTH --mapi-uri=$MAPI_URI --mat-uri=$MAT_URI
+CMD exec /content-preview-app --mapi-auth=$MAPI_AUTH --mapi-uri=$MAPI_URI --mat-uri=$MAT_URI
