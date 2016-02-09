@@ -10,8 +10,11 @@ import (
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	log "github.com/Sirupsen/logrus"
 )
+
 const serviceName = "content-preview"
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
+const mapiPath = "/eom-file/"
+const matPath ="/content-transform/"
 
 func main() {
 	log.SetLevel(log.InfoLevel)
@@ -20,44 +23,39 @@ func main() {
 	app := cli.App(serviceName, serviceDescription)
 	appPort := app.StringOpt("app-port", "8084", "Default port for app")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
-	mapiHost := app.StringOpt("mapi-host", "http://methode-api-uk-p.svc.ft.com", "Host for MAPI")
-	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
+	mapiHostAndPort := app.StringOpt("mapi-host", "methode-api-uk-p.svc.ft.com", "Host and port for MAPI")
 	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Hostheader for MAT")
-	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "Host and path for MAT")
-	matHost := app.StringOpt("mat-host", "http://ftapp05951-lvpr-uk-int:8080", "Host for MAT")
+	matHostAndPort := app.StringOpt("mat-host", "ftapp05951-lvpr-uk-int:8080", "Host and port for MAT")
 
 	app.Action = func() {
 		r := mux.NewRouter()
-		handler := Handlers{*mapiAuth, *mapiUri, *matUri, *matHostHeader, *mapiHost, *matHost}
+		handler := Handlers{*mapiAuth, *matHostHeader, *mapiHostAndPort, *matHostAndPort}
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
 		r.HandleFunc("/build-info", handler.buildInfoHandler)
 		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
 		r.HandleFunc("/ping", pingHandler)
 		http.Handle("/", r)
-
 		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
 
 	}
-	log.Infof("%s service started on port %s", serviceName, appPort)
+	log.Infof("%s service started on port %s", serviceName, *appPort)
 	app.Run(os.Args)
 
 }
 
 type Handlers struct {
-	mapiAuth      string
-	mapiUri       string
-	matUri        string
+	mapiAuth string
 	matHostHeader string
 	mapiHost string
 	matHost string
 }
 
-func pingHandler(w http.ResponseWriter, r *http.Request) {
-
+func pingHandler(w http.ResponseWriter, r *http.Request){
+	fmt.Fprintf(w, "pong")
 }
 
-func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
-
+func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request){
+	fmt.Fprintf(w, "build-info")
 }
 
 var client = &http.Client{}
@@ -72,7 +70,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 		log.Fatal("missing UUID")
 	}
 
-	methode := h.mapiUri + uuid
+	methode := fmt.Sprintf("http://%s%s%s", h.mapiHost, mapiPath, uuid)
 
 	log.Printf("sending to MAPI at %v\n" + methode)
 
@@ -99,10 +97,9 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	//header
 	//responseCode
 	//body
-
-	matUrl := h.matUri + uuid
-	log.Printf("sending to MAT at %v\n" + matUrl)
-
+	matUrl := fmt.Sprintf("http://%s%s%s", h.matHost, matPath, uuid)
+	log.Printf("sending to MAT at " + matUrl);
+	client := &http.Client{}
 	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Host = h.matHostHeader
 	matReq.Header.Set("Content-Type", "application/json")
@@ -151,7 +148,7 @@ return fthealth.Check {
 }
 
 func checkMehtodeApiAvailablity(host string, mapiAuth string) (string, error) {
-	url := fmt.Sprintf("http://%s:8081/healthcheck", host)
+	url := fmt.Sprintf("http://%s/build-info", host)
 	client := &http.Client{}
 	mapReq, err := http.NewRequest("GET", url, nil)
 	mapReq.Header.Set("Authorization", "Basic " + mapiAuth)
@@ -163,7 +160,7 @@ func checkMehtodeApiAvailablity(host string, mapiAuth string) (string, error) {
 }
 
 func checkMethodeArticleTransformerAvailablity(host string) (string, error){
-	url := fmt.Sprintf("http://%s:8081/healthcheck", host)
+	url := fmt.Sprintf("http://%s/build-info", host)
 	client := &http.Client{}
 	mapReq, err := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(mapReq)
