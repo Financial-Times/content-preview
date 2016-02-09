@@ -47,6 +47,8 @@ func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+var client = &http.Client{}
+
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("received request")
 
@@ -61,7 +63,6 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 	log.Printf("sending to MAPI at %v\n" + methode)
 
-	client := &http.Client{}
 	mapReq, err := http.NewRequest("GET", methode, nil)
 	mapReq.Header.Set("Authorization", "Basic "+h.mapiAuth)
 	mapiResp, err := client.Do(mapReq)
@@ -88,11 +89,11 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 	matUrl := h.matUri + uuid
 	log.Printf("sending to MAT at %v\n" + matUrl)
-	client2 := &http.Client{}
+
 	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Host = h.matHostHeader
 	matReq.Header.Set("Content-Type", "application/json")
-	matResp, err := client2.Do(matReq)
+	matResp, err := client.Do(matReq)
 
 	log.Printf("mat the status code %v\n", matResp.StatusCode)
 
