@@ -90,7 +90,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	log.Printf("sending to MAT at %v\n" + matUrl)
 	client2 := &http.Client{}
 	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
-	matReq.Header.Set("Host", h.matHostHeader)
+	matReq.Host = h.matHostHeader
 	matReq.Header.Set("Content-Type", "application/json")
 	matResp, err := client2.Do(matReq)
 
