@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	"io"
@@ -60,7 +59,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 	methode := h.mapiUri + uuid
 
-	log.Printf("sending to MAPI at " + methode)
+	log.Printf("sending to MAPI at %v\n" + methode)
 
 	client := &http.Client{}
 	mapReq, err := http.NewRequest("GET", methode, nil)
@@ -71,7 +70,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 		log.Fatal(err)
 	}
 
-	fmt.Printf("mapi the status code %v", mapiResp.StatusCode)
+	log.Printf("mapi the status code %v\n", mapiResp.StatusCode)
 	if mapiResp.StatusCode != 200 {
 		if mapiResp.StatusCode == 404 {
 			w.WriteHeader(http.StatusNotFound)
@@ -88,20 +87,20 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	//body
 
 	matUrl := h.matUri + uuid
-	log.Printf("sending to MAT at " + matUrl)
+	log.Printf("sending to MAT at %v\n" + matUrl)
 	client2 := &http.Client{}
 	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Header.Set("Host", h.matHostHeader)
 	matReq.Header.Set("Content-Type", "application/json")
 	matResp, err := client2.Do(matReq)
 
+	log.Printf("mat the status code %v\n", matResp.StatusCode)
+
 	if matResp.StatusCode != 200 {
 		//TODO break this down
-		fmt.Printf("---the status code %v", matResp.StatusCode)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Printf("mat the status code %v", matResp.StatusCode)
 	io.Copy(w, matResp.Body)
 }
