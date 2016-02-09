@@ -28,6 +28,7 @@ func main() {
 		http.Handle("/", r)
 
 		log.Fatal(http.ListenAndServe(":" + *appPort, nil))
+
 	}
 	app.Run(os.Args)
 
@@ -58,10 +59,9 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 		log.Fatal("missing UUID")
 	}
 
-	log.Printf(h.mapiAuth);
-	log.Printf(h.mapiUri);
 	methode := h.mapiUri + uuid
 
+	log.Printf("sending to MAPI at " + methode);
 
 	client := &http.Client{}
 	mapReq, err := http.NewRequest("GET", methode, nil)
@@ -72,6 +72,8 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	if err !=nil {
 		log.Fatal(err)
 	}
+
+	fmt.Printf("mapi the status code %v", mapiResp.StatusCode)
 	if mapiResp.StatusCode !=200 {
 		if mapiResp.StatusCode == 404 {
 			w.WriteHeader(http.StatusNotFound);
@@ -86,11 +88,14 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	//header
 	//responseCode
 	//body
-	client2 := &http.Client{}
+
 	matUrl := h.matUri + uuid
+	log.Printf("sending to MAT at " + matUrl);
+	client2 := &http.Client{}
 	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
-	matReq.Header.Set("Host", h.matHostHeader)
-	matResp, err := client2.Do(mapReq)
+	matReq.Header.Add("Host", h.matHostHeader)
+	matReq.Header.Add("Content-Type", "application/json")
+	matResp, err := client2.Do(matReq)
 
 	if matResp.StatusCode !=200 {
 		//TODO break this down
@@ -99,7 +104,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	fmt.Printf("the status code %v", matResp.StatusCode)
+	fmt.Printf("mat the status code %v", matResp.StatusCode)
 	io.Copy(w, matResp.Body)
 }
 
