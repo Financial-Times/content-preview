@@ -1,14 +1,12 @@
 package main
 
 import (
-	"os"
+	"github.com/gorilla/mux"
+	"github.com/jawher/mow.cli"
 	"io"
 	"log"
 	"net/http"
-	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
-
+	"os"
 )
 
 func main() {
@@ -27,7 +25,7 @@ func main() {
 		r.HandleFunc("/ping", pingHandler)
 		http.Handle("/", r)
 
-		log.Fatal(http.ListenAndServe(":" + *appPort, nil))
+		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
 
 	}
 	app.Run(os.Args)
@@ -35,22 +33,24 @@ func main() {
 }
 
 type Handlers struct {
-	mapiAuth string
-	mapiUri string
-	matUri string
+	mapiAuth      string
+	mapiUri       string
+	matUri        string
 	matHostHeader string
 }
 
-func pingHandler(w http.ResponseWriter, r *http.Request){
+func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request){
+func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 }
+
+var client = &http.Client{}
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("received request");
+	log.Printf("received request")
 
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
@@ -61,22 +61,20 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 	methode := h.mapiUri + uuid
 
-	log.Printf("sending to MAPI at " + methode);
+	log.Printf("sending to MAPI at %v\n" + methode)
 
-	client := &http.Client{}
 	mapReq, err := http.NewRequest("GET", methode, nil)
-	mapReq.Header.Set("Authorization", "Basic " + h.mapiAuth)
+	mapReq.Header.Set("Authorization", "Basic "+h.mapiAuth)
 	mapiResp, err := client.Do(mapReq)
 
-
-	if err !=nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("mapi the status code %v", mapiResp.StatusCode)
-	if mapiResp.StatusCode !=200 {
+	log.Printf("mapi the status code %v\n", mapiResp.StatusCode)
+	if mapiResp.StatusCode != 200 {
 		if mapiResp.StatusCode == 404 {
-			w.WriteHeader(http.StatusNotFound);
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		//TODO break this down
@@ -90,21 +88,20 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	//body
 
 	matUrl := h.matUri + uuid
-	log.Printf("sending to MAT at " + matUrl);
-	client2 := &http.Client{}
-	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
-	matReq.Header.Set("Host", h.matHostHeader)
-	matReq.Header.Set("Content-Type", "application/json")
-	matResp, err := client2.Do(matReq)
+	log.Printf("sending to MAT at %v\n" + matUrl)
 
-	if matResp.StatusCode !=200 {
+	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
+	matReq.Host = h.matHostHeader
+	matReq.Header.Set("Content-Type", "application/json")
+	matResp, err := client.Do(matReq)
+
+	log.Printf("mat the status code %v\n", matResp.StatusCode)
+
+	if matResp.StatusCode != 200 {
 		//TODO break this down
-		fmt.Printf("---the status code %v", matResp.StatusCode)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Printf("mat the status code %v", matResp.StatusCode)
 	io.Copy(w, matResp.Body)
 }
-
