@@ -1,33 +1,44 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
 	"io"
-	"log"
 	"net/http"
 	"os"
+	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/jawher/mow.cli"
+	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	log "github.com/Sirupsen/logrus"
 )
+const serviceName = "content-preview"
+const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
 
 func main() {
-	app := cli.App("content-preview", "A RESTful API for retrieving and transforming content preview data")
+	log.SetLevel(log.InfoLevel)
+	log.Infof("%s service started with args %s", serviceName, os.Args)
+
+	app := cli.App(serviceName, serviceDescription)
 	appPort := app.StringOpt("app-port", "8084", "Default port for app")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
+	mapiHost := app.StringOpt("mapi-host", "http://methode-api-uk-p.svc.ft.com", "Host for MAPI")
 	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
 	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Hostheader for MAT")
 	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "Host and path for MAT")
+	matHost := app.StringOpt("mat-host", "http://ftapp05951-lvpr-uk-int:8080", "Host for MAT")
 
 	app.Action = func() {
 		r := mux.NewRouter()
-		handler := Handlers{*mapiAuth, *mapiUri, *matUri, *matHostHeader}
+		handler := Handlers{*mapiAuth, *mapiUri, *matUri, *matHostHeader, *mapiHost, *matHost}
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
 		r.HandleFunc("/build-info", handler.buildInfoHandler)
+		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
 		r.HandleFunc("/ping", pingHandler)
 		http.Handle("/", r)
 
 		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
 
 	}
+	log.Infof("%s service started on port %s", serviceName, appPort)
 	app.Run(os.Args)
 
 }
@@ -37,6 +48,8 @@ type Handlers struct {
 	mapiUri       string
 	matUri        string
 	matHostHeader string
+	mapiHost string
+	matHost string
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,4 +122,53 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	io.Copy(w, matResp.Body)
+}
+
+func (h Handlers) mapiCheck()  fthealth.Check {
+	return fthealth.Check{
+		BusinessImpact:   "Articvle Preview Service will not work",
+		Name:             "Methode Api Availablilty Check",
+		PanicGuide:       "TODO - write panic guide",
+		Severity:         1,
+		TechnicalSummary: "Checks that Methode API Service is reachable. Article Preview Service requests native content from Methode API service.",
+		Checker:          func() (string, error) {
+			return checkMehtodeApiAvailablity(h.mapiHost, h.mapiAuth)
+		},
+	}
+}
+
+func (h Handlers) matCheck() fthealth.Check {
+return fthealth.Check {
+	BusinessImpact:   "Article Peview service will not work",
+	Name:             "Mehtode Article Transformer Availablilty Check",
+	PanicGuide:       "TODO - write panic guide",
+	Severity:         1,
+	TechnicalSummary: "Checks that Methode Article Transformer Service is reachable. Article Preview Service relies on Methode Article Transformer service to process content.",
+	Checker:          func() (string, error) {
+		return checkMethodeArticleTransformerAvailablity(h.matHost)
+		},
+	}
+}
+
+func checkMehtodeApiAvailablity(host string, mapiAuth string) (string, error) {
+	url := fmt.Sprintf("http://%s:8081/healthcheck", host)
+	client := &http.Client{}
+	mapReq, err := http.NewRequest("GET", url, nil)
+	mapReq.Header.Set("Authorization", "Basic " + mapiAuth)
+	resp, err := client.Do(mapReq)
+	if resp.StatusCode == 200 {
+		return "Ok", nil
+	}
+	return fmt.Sprintf("Methode API respnded with code %s", resp.Status), err
+}
+
+func checkMethodeArticleTransformerAvailablity(host string) (string, error){
+	url := fmt.Sprintf("http://%s:8081/healthcheck", host)
+	client := &http.Client{}
+	mapReq, err := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(mapReq)
+	if resp.StatusCode == 200 {
+		return "Ok", nil
+	}
+	return fmt.Sprintf("Methode Article Trransformer respnded with code %s", resp.Status), err
 }
