@@ -13,6 +13,7 @@ import (
 
 func main() {
 	app := cli.App("content-preview", "A RESTful API for retrieving and transforming content preview data")
+	appPort := app.StringOpt("app-port", "8084", "Default port for app")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
 	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
 	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Hostheader for MAT")
@@ -26,7 +27,7 @@ func main() {
 		r.HandleFunc("/ping", pingHandler)
 		http.Handle("/", r)
 
-		log.Fatal(http.ListenAndServe(":8084", nil))
+		log.Fatal(http.ListenAndServe(":" + *appPort, nil))
 	}
 	app.Run(os.Args)
 
