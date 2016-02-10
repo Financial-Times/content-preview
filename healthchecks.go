@@ -38,8 +38,8 @@ func checkServiceAvailablity(serviceName string, host string, auth string) (stri
 	req.Header.Set("Authorization", "Basic " + auth)
 	}
 	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != 200 {
-		return fmt.Sprintf("%s is unreachable", serviceName), err
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return fmt.Sprintf("%s service is unreachable", serviceName), fmt.Errorf("%s service is unreachable", serviceName)
 	}
 	return "Ok", nil
 }

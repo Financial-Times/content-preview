@@ -35,7 +35,7 @@ func main() {
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
 		r.HandleFunc("/build-info", handler.buildInfoHandler)
 		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
-		r.HandleFunc("/ping", pingHandler)
+		r.HandleFunc("/__ping", pingHandler)
 		http.Handle("/", r)
 		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
 	}

@@ -41,22 +41,27 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	success, mapiResp := h.getNativeContent(uuid, w, r)
 	if !success { return }
 	success, matResp := h.getTransformedContent(uuid, *mapiResp, w, r)
-	if(!success) { return }
+	if(!success) {
+		mapiResp.Body.Close()
+		return
+	}
 	io.Copy(w, matResp.Body)
 	matResp.Body.Close()
 }
 
-func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.Request) (ok bool, mapiResp *http.Response) {
-	methode := fmt.Sprintf("%s%s%s", h.mapiUri, mapiPath, uuid)
-
+func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.Request) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
+	requestUrl := fmt.Sprintf("%s%s%s", h.mapiUri, mapiPath, uuid)
+
 	logger.WithFields(log.Fields{
-		"requestUri" : methode,
+		"requestUri" : requestUrl,
 		"transactionId" : r.Header.Get(TransactionIdHeader),
 	}).Info("Request to MAPI");
-	mapiReq, err := http.NewRequest("GET", methode, nil)
-	mapiReq.Header.Set("Authorization", "Basic " + h.mapiAuth)
-	mapiResp, err = client.Do(mapiReq)
+
+	req, err := http.NewRequest("GET", requestUrl, nil)
+	req.Header.Set("Authorization", "Basic " + h.mapiAuth)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
 
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err !=nil {
@@ -64,37 +69,43 @@ func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return false, nil
 	}
-	if mapiResp.StatusCode !=200 {
+	if resp.StatusCode != http.StatusOK {
 		w.WriteHeader(http.StatusNotFound);
-		log.WithFields(log.Fields{"MapiStatus" : mapiResp.StatusCode, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Request to MAPI failed")
+		log.WithFields(log.Fields{"MAPI.Status" : resp.StatusCode, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Request to MAPI failed")
 		return false, nil
 	}
 
-	logger.WithFields(log.Fields{"status" : mapiResp.Status, "transactionId" : mapiResp.Header.Get(TransactionIdHeader)}).Info("Response from MAPI")
-	return true, mapiResp
+	logger.WithFields(log.Fields{"status" : resp.Status, "transactionId" : resp.Header.Get(TransactionIdHeader)}).Info("Response from MAPI")
+	return true, resp
 }
 
-func ( h Handlers) getTransformedContent(uuid string, mapiResp http.Response, w http.ResponseWriter, r *http.Request) (ok bool, matResp *http.Response) {
+func ( h Handlers) getTransformedContent(uuid string, mapiResp http.Response, w http.ResponseWriter, r *http.Request) (ok bool, resp *http.Response) {
+	logger.Formatter = new(log.JSONFormatter)
+	requestUrl := fmt.Sprintf("%s%s%s", h.matUri, matPath, uuid)
 
-	// order of writing a response
-	//header
-	//responseCode
-	//body
+	logger.WithFields(log.Fields{
+		"requestUri" : requestUrl,
+		"transactionId" : r.Header.Get(TransactionIdHeader),
+	}).Info("Request to MAT");
 
-	matUrl := fmt.Sprintf("%s%s%s", h.matUri, matPath, uuid)
-	log.Printf("sending to MAT at "+matUrl);
-	matReq, _ := http.NewRequest("POST", matUrl, mapiResp.Body)
-	matReq.Host = h.matHostHeader
-	matReq.Header.Set("Content-Type", "application/json")
-	matResp, _ = client.Do(matReq)
+	req, err := http.NewRequest("POST", requestUrl, mapiResp.Body)
+	req.Host = h.matHostHeader
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
 
-	if matResp.StatusCode != 200 {
-		//TODO break this down
-		fmt.Printf("---the status code %v\n", matResp.StatusCode)
-		w.WriteHeader(http.StatusInternalServerError)
+	//this happens when hostname cannot be resolved or host is not accessible
+	if err !=nil {
+		log.WithFields(log.Fields{"error" : err, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Cannot reach MAT host")
+		w.WriteHeader(http.StatusServiceUnavailable)
 		return false, nil
 	}
 
-	fmt.Printf("mat the status code %v\n", matResp.StatusCode)
-	return true, matResp
+	if resp.StatusCode != http.StatusOK {
+		w.WriteHeader(http.StatusNotFound);
+		log.WithFields(log.Fields{"MAT.Status" : resp.StatusCode, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Request to MAT failed")
+		return false, nil
+	}
+
+	logger.WithFields(log.Fields{"status" : resp.Status, "transactionId" : mapiResp.Header.Get(TransactionIdHeader)}).Info("Response from MAT")
+	return true, resp
 }
