@@ -14,6 +14,7 @@ const serviceDescription = "A RESTful API for retrieving and transforming conten
 const mapiPath = "/eom-file/"
 const matPath ="/content-transform/"
 
+
 func main() {
 
 	log.SetLevel(log.InfoLevel)
@@ -35,7 +36,6 @@ func main() {
 		r.HandleFunc("/ping", pingHandler)
 		http.Handle("/", r)
 		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
-
 	}
 	log.WithFields(log.Fields{
 		"mapiHostAndPort" : *mapiHostAndPort,
