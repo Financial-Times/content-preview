@@ -7,6 +7,7 @@ import (
 	"github.com/jawher/mow.cli"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	log "github.com/Sirupsen/logrus"
+	"time"
 )
 
 const serviceName = "content-preview"
@@ -14,6 +15,8 @@ const serviceDescription = "A RESTful API for retrieving and transforming conten
 const mapiPath = "/eom-file/"
 const matPath ="/content-transform/"
 
+var timeout = time.Duration(5 * time.Second)
+var client = &http.Client{Timeout: timeout}
 
 func main() {
 

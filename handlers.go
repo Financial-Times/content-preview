@@ -40,6 +40,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	success, matResp := h.getTransformedContent(uuid, *mapiResp, w, r)
 	if(!success) { return }
 	io.Copy(w, matResp.Body)
+	matResp.Body.Close()
 }
 
 func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.Request) (ok bool, mapiResp *http.Response) {
@@ -50,8 +51,6 @@ func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.
 		"requestUri" : methode,
 		"transactionId" : r.Header.Get(TransactionIdHeader),
 	}).Info("Request to MAPI");
-
-	client := &http.Client{}
 	mapiReq, err := http.NewRequest("GET", methode, nil)
 	mapiReq.Header.Set("Authorization", "Basic " + h.mapiAuth)
 	mapiResp, err = client.Do(mapiReq)
@@ -81,7 +80,6 @@ func ( h Handlers) getTransformedContent(uuid string, mapiResp http.Response, w 
 
 	matUrl := fmt.Sprintf("http://%s%s%s", h.matHost, matPath, uuid)
 	log.Printf("sending to MAT at "+matUrl);
-	client := &http.Client{}
 	matReq, _ := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Host = h.matHostHeader
 	matReq.Header.Set("Content-Type", "application/json")
