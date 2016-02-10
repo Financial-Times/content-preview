@@ -17,4 +17,4 @@ RUN apk add --update bash \
   && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
 
-CMD exec /content-preview-app --app-port $APP_PORT --mapi-auth $MAPI_AUTH --mapi-host $MAPI_HOST --mat-host $MAT_HOST
+CMD exec /content-preview-app --app-port $APP_PORT --mapi-auth $MAPI_AUTH --mapi-uri $MAPI_URI --mat-uri $MAT_URI

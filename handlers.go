@@ -8,13 +8,16 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 const 	TransactionIdHeader = "X-Request-Id"
+const mapiPath = "/eom-file/"
+const matPath ="/content-transform/"
+
 var logger = log.New()
 
 type Handlers struct {
-	mapiAuth 		string
-	matHostHeader 	string
-	mapiHost 		string
-	matHost 		string
+	mapiAuth      string
+	matHostHeader string
+	mapiUri       string
+	matUri        string
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +47,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.Request) (ok bool, mapiResp *http.Response) {
-	methode := fmt.Sprintf("http://%s%s%s", h.mapiHost, mapiPath, uuid)
+	methode := fmt.Sprintf("%s%s%s", h.mapiUri, mapiPath, uuid)
 
 	logger.Formatter = new(log.JSONFormatter)
 	logger.WithFields(log.Fields{
@@ -58,16 +61,16 @@ func ( h Handlers) getNativeContent(uuid string, w http.ResponseWriter, r *http.
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err !=nil {
 		log.WithFields(log.Fields{"error" : err, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Cannot reach MAPI host")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return false, nil
+	}
+	if mapiResp.StatusCode !=200 {
+		w.WriteHeader(http.StatusNotFound);
+		log.WithFields(log.Fields{"MapiStatus" : mapiResp.StatusCode, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Request to MAPI failed")
 		return false, nil
 	}
 
 	logger.WithFields(log.Fields{"status" : mapiResp.Status, "transactionId" : mapiResp.Header.Get(TransactionIdHeader)}).Info("Response from MAPI")
-
-	if mapiResp.StatusCode !=200 {
-		w.WriteHeader(mapiResp.StatusCode);
-		log.WithFields(log.Fields{"MapiStatus" : mapiResp.StatusCode, "transactionId" : r.Header.Get(TransactionIdHeader)}).Warnf("Request to MAPI failed")
-		return false, nil
-	}
 	return true, mapiResp
 }
 
@@ -78,7 +81,7 @@ func ( h Handlers) getTransformedContent(uuid string, mapiResp http.Response, w 
 	//responseCode
 	//body
 
-	matUrl := fmt.Sprintf("http://%s%s%s", h.matHost, matPath, uuid)
+	matUrl := fmt.Sprintf("%s%s%s", h.matUri, matPath, uuid)
 	log.Printf("sending to MAT at "+matUrl);
 	matReq, _ := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Host = h.matHostHeader

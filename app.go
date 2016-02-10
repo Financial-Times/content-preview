@@ -12,8 +12,7 @@ import (
 
 const serviceName = "content-preview"
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
-const mapiPath = "/eom-file/"
-const matPath ="/content-transform/"
+
 
 var timeout = time.Duration(5 * time.Second)
 var client = &http.Client{Timeout: timeout}
@@ -26,13 +25,13 @@ func main() {
 	app := cli.App(serviceName, serviceDescription)
 	appPort := app.StringOpt("app-port", "8084", "Default port for app")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
-	mapiHostAndPort := app.StringOpt("mapi-host", "methode-api-uk-p.svc.ft.com", "Host and port for MAPI")
+	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com", "Host and port for MAPI")
 	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Hostheader for MAT")
-	matHostAndPort := app.StringOpt("mat-host", "ftapp05951-lvpr-uk-int:8080", "Host and port for MAT")
+	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080", "Host and port for MAT")
 
 	app.Action = func() {
 		r := mux.NewRouter()
-		handler := Handlers{*mapiAuth, *matHostHeader, *mapiHostAndPort, *matHostAndPort}
+		handler := Handlers{*mapiAuth, *matHostHeader, *mapiUri, *matUri}
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
 		r.HandleFunc("/build-info", handler.buildInfoHandler)
 		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
@@ -41,8 +40,8 @@ func main() {
 		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
 	}
 	log.WithFields(log.Fields{
-		"mapiHostAndPort" : *mapiHostAndPort,
-		"matHostAndPort"  : *matHostAndPort,
+		"mapiUri" : *mapiUri,
+		"matUri"  : *matUri,
 	}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
 	app.Run(os.Args)
 
