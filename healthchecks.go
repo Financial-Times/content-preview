@@ -7,31 +7,31 @@ import (
 
 func (h Handlers) mapiCheck() fthealth.Check {
 	return fthealth.Check{
-		BusinessImpact:   "Articvle Preview Service will not work",
-		Name:             "Methode Api Availablilty Check",
+		BusinessImpact:   "Editorial users won't be able to preview articles",
+		Name:             "Methode Api Availabililty Check",
 		PanicGuide:       "TODO - write panic guide",
 		Severity:         1,
 		TechnicalSummary: "Checks that Methode API Service is reachable. Article Preview Service requests native content from Methode API service.",
 		Checker:          func() (string, error) {
-			return checkServiceAvailablity("Methode API", h.mapiUri, h.mapiAuth)
+			return checkServiceAvailability("Methode API", h.mapiUri, h.mapiAuth)
 		},
 	}
 }
 
 func (h Handlers) matCheck() fthealth.Check {
 	return fthealth.Check {
-		BusinessImpact:   "Article Peview service will not work",
-		Name:             "Mehtode Article Transformer Availablilty Check",
+		BusinessImpact:   "Editorial users won't be able to preview articles",
+		Name:             "Methode Article Transformer Availabililty Check",
 		PanicGuide:       "TODO - write panic guide",
 		Severity:         1,
 		TechnicalSummary: "Checks that Methode Article Transformer Service is reachable. Article Preview Service relies on Methode Article Transformer service to process content.",
 		Checker:          func() (string, error) {
-			return checkServiceAvailablity("Methode Article Transformer", h.matUri, "")
+			return checkServiceAvailability("Methode Article Transformer", h.matUri, "")
 		},
 	}
 }
 
-func checkServiceAvailablity(serviceName string, host string, auth string) (string, error) {
+func checkServiceAvailability(serviceName string, host string, auth string) (string, error) {
 	url := fmt.Sprintf("%s/build-info", host)
 	req, err := http.NewRequest("GET", url, nil)
 	if auth != "" {
