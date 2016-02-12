@@ -8,6 +8,8 @@ import (
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	log "github.com/Sirupsen/logrus"
 	"time"
+	"github.com/Financial-Times/http-handlers-go"
+	"github.com/rcrowley/go-metrics"
 )
 
 const serviceName = "content-preview"
@@ -36,7 +38,11 @@ func main() {
 		r.HandleFunc("/build-info", handler.buildInfoHandler)
 		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
 		r.HandleFunc("/__ping", pingHandler)
-		http.Handle("/", r)
+
+		var monitoringRouter http.Handler = r
+		monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+		monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+		http.Handle("/", monitoringRouter)
 		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
 	}
 	log.WithFields(log.Fields{
