@@ -92,9 +92,10 @@ func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) 
 func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s%s", h.matUri, matPath, uuid)
+	requestUrl := fmt.Sprintf("%s%s%s?preview=true", h.matUri, matPath, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
-	//TODO we need to assert that  mapiResp.Header.Get(tid.TransactionIDHeader) ==  transactionId
+
+	//TODO we need to assert that mapiResp.Header.Get(tid.TransactionIDHeader) ==  transactionId
 	//to ensure that we are logging exactly what is actually passed around in the headers
 	logger.WithFields(log.Fields{
 		"requestUri" : requestUrl,
@@ -105,6 +106,7 @@ func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Resp
 	req.Host = h.matHostHeader
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
+
 	resp, err = client.Do(req)
 
 	//this happens when hostname cannot be resolved or host is not accessible
@@ -120,6 +122,6 @@ func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Resp
 		return false, nil
 	}
 
-	logger.WithFields(log.Fields{"status" : resp.Status, "transactionId" : transactionId}).Info("Response from MAT")
+	logger.WithFields(log.Fields{"status" : resp.Status, "requestUrl": req.URL.String(), "transactionId" : transactionId}).Info("Response from MAT")
 	return true, resp
 }
