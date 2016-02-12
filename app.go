@@ -93,6 +93,11 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
 	matReq.Host = h.matHostHeader
 	matReq.Header.Set("Content-Type", "application/json")
+
+	q := matReq.URL.Query()
+	q.Add("preview", "true")
+	matReq.URL.RawQuery = q.Encode()
+
 	matResp, err := client.Do(matReq)
 
 	log.Printf("mat the status code %v\n", matResp.StatusCode)
