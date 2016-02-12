@@ -12,6 +12,7 @@ import (
 
 const mapiPath = "/eom-file/"
 const matPath ="/content-transform/"
+const uuidKey = "uuid"
 
 var logger = log.New()
 
@@ -31,8 +32,6 @@ func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
-
 	logger.Formatter = new(log.JSONFormatter)
 	logger.WithFields(log.Fields{
 		"requestUri" : r.RequestURI,
@@ -42,9 +41,12 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
-	success, mapiResp := h.getNativeContent(ctx, uuid, w)
+	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
+	ctx = context.WithValue(ctx, uuidKey, uuid)
+
+	success, mapiResp := h.getNativeContent(ctx, w)
 	if !success { return }
-	success, matResp := h.getTransformedContent(ctx, uuid, *mapiResp, w)
+	success, matResp := h.getTransformedContent(ctx, *mapiResp, w)
 	if(!success) {
 		mapiResp.Body.Close()
 		return
@@ -53,9 +55,11 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	matResp.Body.Close()
 }
 
-func ( h Handlers) getNativeContent(ctx context.Context, uuid string, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
+	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s%s", h.mapiUri, mapiPath, uuid)
+
 
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 	logger.WithFields(log.Fields{
@@ -85,8 +89,9 @@ func ( h Handlers) getNativeContent(ctx context.Context, uuid string, w http.Res
 	return true, resp
 }
 
-func ( h Handlers) getTransformedContent(ctx context.Context, uuid string, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
+	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s%s", h.matUri, matPath, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 	//TODO we need to assert that  mapiResp.Header.Get(tid.TransactionIDHeader) ==  transactionId
