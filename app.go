@@ -8,8 +8,8 @@ import (
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	log "github.com/Sirupsen/logrus"
 	"time"
-	"github.com/Financial-Times/http-handlers-go"
 	"github.com/rcrowley/go-metrics"
+	"github.com/Financial-Times/http-handlers-go"
 )
 
 const serviceName = "content-preview"
@@ -39,15 +39,20 @@ func main() {
 		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
 		r.HandleFunc("/__ping", pingHandler)
 
-		var monitoringRouter http.Handler = r
-		monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
-		monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
-		http.Handle("/", monitoringRouter)
-		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
+		err := http.ListenAndServe( ":"+*appPort,
+			httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
+				httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), r)))
+
+		if err != nil {
+			log.Fatalf("Unable to start server: %v", err)
+		}
+
 	}
 	log.WithFields(log.Fields{
-		"mapiUri" : *mapiUri,
-		"matUri"  : *matUri,
+		"mapi-uri" : *mapiUri,
+		"mat-uri"  : *matUri,
+		"mapi-auth" : *mapiAuth,
+		"mat-host-header" : *matHostHeader,
 	}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
 	app.Run(os.Args)
 

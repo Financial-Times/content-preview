@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/Sirupsen/logrus"
 	tid "github.com/Financial-Times/transactionid-utils-go"
+	"golang.org/x/net/context"
 )
 
 const mapiPath = "/eom-file/"
@@ -30,32 +31,33 @@ func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
-	transactionId := tid.GetTransactionIDFromRequest(r)
+	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
+
 	logger.Formatter = new(log.JSONFormatter)
 	logger.WithFields(log.Fields{
 		"requestUri" : r.RequestURI,
-		"transactionId" : transactionId,
+		"transactionId" : tid.GetTransactionIDFromRequest(r),
 	}).Info("request started");
 
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
-	success, mapiResp := h.getNativeContent(uuid, transactionId, w)
+	success, mapiResp := h.getNativeContent(ctx, uuid, w)
 	if !success { return }
-	success, matResp := h.getTransformedContent(uuid, *mapiResp, w)
+	success, matResp := h.getTransformedContent(ctx, uuid, *mapiResp, w)
 	if(!success) {
 		mapiResp.Body.Close()
 		return
 	}
-	w.Header().Set(tid.TransactionIDHeader, matResp.Header.Get(tid.TransactionIDHeader))
 	io.Copy(w, matResp.Body)
 	matResp.Body.Close()
 }
 
-func ( h Handlers) getNativeContent(uuid string, transactionId string, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h Handlers) getNativeContent(ctx context.Context, uuid string, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
 	requestUrl := fmt.Sprintf("%s%s%s", h.mapiUri, mapiPath, uuid)
 
+	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 	logger.WithFields(log.Fields{
 		"requestUri" : requestUrl,
 		"transactionId" : transactionId,
@@ -83,34 +85,36 @@ func ( h Handlers) getNativeContent(uuid string, transactionId string, w http.Re
 	return true, resp
 }
 
-func ( h Handlers) getTransformedContent(uuid string, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h Handlers) getTransformedContent(ctx context.Context, uuid string, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
 	requestUrl := fmt.Sprintf("%s%s%s", h.matUri, matPath, uuid)
-
+	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
+	//TODO we need to assert that  mapiResp.Header.Get(tid.TransactionIDHeader) ==  transactionId
+	//to ensure that we are logging exactly what is actually passed around in the headers
 	logger.WithFields(log.Fields{
 		"requestUri" : requestUrl,
-		"transactionId" : mapiResp.Header.Get(tid.TransactionIDHeader),
+		"transactionId" : transactionId,
 	}).Info("Request to MAT");
 
 	req, err := http.NewRequest("POST", requestUrl, mapiResp.Body)
 	req.Host = h.matHostHeader
-	req.Header.Set(tid.TransactionIDHeader, mapiResp.Header.Get(tid.TransactionIDHeader))
+	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err !=nil {
-		log.WithFields(log.Fields{"error" : err, "transactionId" : req.Header.Get(tid.TransactionIDHeader)}).Warnf("Cannot reach MAT host")
+		log.WithFields(log.Fields{"error" : err, "transactionId" : transactionId }).Warnf("Cannot reach MAT host")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return false, nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		w.WriteHeader(http.StatusNotFound);
-		log.WithFields(log.Fields{"MAT.Status" : resp.StatusCode, "transactionId" : req.Header.Get(tid.TransactionIDHeader)}).Warnf("Request to MAT failed")
+		log.WithFields(log.Fields{"MAT.Status" : resp.StatusCode, "transactionId" : transactionId }).Warnf("Request to MAT failed")
 		return false, nil
 	}
 
-	logger.WithFields(log.Fields{"status" : resp.Status, "transactionId" : mapiResp.Header.Get(tid.TransactionIDHeader)}).Info("Response from MAT")
+	logger.WithFields(log.Fields{"status" : resp.Status, "transactionId" : transactionId}).Info("Response from MAT")
 	return true, resp
 }
