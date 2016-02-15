@@ -21,7 +21,6 @@ var client = &http.Client{Timeout: timeout}
 
 func main() {
 	log.SetLevel(log.InfoLevel)
-	log.Infof("%s service started with args %s", serviceName, os.Args)
 
 	app := cli.App(serviceName, serviceDescription)
 	appPort := app.StringOpt("app-port", "8084", "Default port for app")
