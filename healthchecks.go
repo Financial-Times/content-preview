@@ -13,7 +13,7 @@ func (h Handlers) mapiCheck() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "Checks that Methode API Service is reachable. Article Preview Service requests native content from Methode API service.",
 		Checker:          func() (string, error) {
-			return checkServiceAvailability("Methode API", h.mapiUri, h.mapiAuth)
+			return checkServiceAvailability("Methode API", h.mapiUri, h.mapiAuth, "")
 		},
 	}
 }
@@ -26,17 +26,22 @@ func (h Handlers) matCheck() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "Checks that Methode Article Transformer Service is reachable. Article Preview Service relies on Methode Article Transformer service to process content.",
 		Checker:          func() (string, error) {
-			return checkServiceAvailability("Methode Article Transformer", h.matUri, "")
+			return checkServiceAvailability("Methode Article Transformer", h.matUri, "", h.matHostHeader)
 		},
 	}
 }
 
-func checkServiceAvailability(serviceName string, host string, auth string) (string, error) {
+func checkServiceAvailability(serviceName string, host string, auth string, hostHeader string) (string, error) {
 	url := fmt.Sprintf("%s/build-info", host)
 	req, err := http.NewRequest("GET", url, nil)
 	if auth != "" {
 	req.Header.Set("Authorization", "Basic " + auth)
 	}
+
+	if hostHeader != "" {
+		req.Host = hostHeader
+	}
+
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return fmt.Sprintf("%s service is unreachable", serviceName), fmt.Errorf("%s service is unreachable", serviceName)
