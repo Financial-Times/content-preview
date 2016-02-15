@@ -41,8 +41,6 @@ func main() {
 		log.WithFields(log.Fields{
 			"mapi-uri" : *mapiUri,
 			"mat-uri"  : *matUri,
-			"mapi-auth" : *mapiAuth,
-			"mat-host-header" : *matHostHeader,
 		}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
 
 		err := http.ListenAndServe( ":"+*appPort,
