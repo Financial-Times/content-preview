@@ -1,112 +1,60 @@
 package main
 
 import (
+	"os"
+	"net/http"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"io"
-	"log"
-	"net/http"
-	"os"
+	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	log "github.com/Sirupsen/logrus"
+	"time"
+	"github.com/rcrowley/go-metrics"
+	"github.com/Financial-Times/http-handlers-go"
 )
 
+const serviceName = "content-preview"
+const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
+
+
+var timeout = time.Duration(5 * time.Second)
+var client = &http.Client{Timeout: timeout}
+
 func main() {
-	app := cli.App("content-preview", "A RESTful API for retrieving and transforming content preview data")
+	log.SetLevel(log.InfoLevel)
+	log.Infof("%s service started with args %s", serviceName, os.Args)
+
+	app := cli.App(serviceName, serviceDescription)
 	appPort := app.StringOpt("app-port", "8084", "Default port for app")
 	mapiAuth := app.StringOpt("mapi-auth", "default", "Basic auth for MAPI")
-	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "Host and path for MAPI")
+	mapiUri := app.StringOpt("mapi-uri", "http://methode-api-uk-p.svc.ft.com", "Host and port for MAPI")
 	matHostHeader := app.StringOpt("mat-host-header", "methode-article-transformer", "Hostheader for MAT")
-	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "Host and path for MAT")
+	matUri := app.StringOpt("mat-uri", "http://ftapp05951-lvpr-uk-int:8080", "Host and port for MAT")
 
 	app.Action = func() {
 		r := mux.NewRouter()
-		handler := Handlers{*mapiAuth, *mapiUri, *matUri, *matHostHeader}
+		handler := Handlers{*mapiAuth, *matHostHeader, *mapiUri, *matUri}
 		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
 		r.HandleFunc("/build-info", handler.buildInfoHandler)
-		r.HandleFunc("/ping", pingHandler)
-		http.Handle("/", r)
+		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
+		r.HandleFunc("/__ping", pingHandler)
 
-		log.Fatal(http.ListenAndServe(":"+*appPort, nil))
+		log.WithFields(log.Fields{
+			"mapi-uri" : *mapiUri,
+			"mat-uri"  : *matUri,
+			"mapi-auth" : *mapiAuth,
+			"mat-host-header" : *matHostHeader,
+		}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
+
+		err := http.ListenAndServe( ":"+*appPort,
+			httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
+				httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), r)))
+
+		if err != nil {
+			log.Fatalf("Unable to start server: %v", err)
+		}
 
 	}
+
 	app.Run(os.Args)
 
-}
-
-type Handlers struct {
-	mapiAuth      string
-	mapiUri       string
-	matUri        string
-	matHostHeader string
-}
-
-func pingHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-var client = &http.Client{}
-
-func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("received request")
-
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
-
-	if uuid == "" {
-		log.Fatal("missing UUID")
-	}
-
-	methode := h.mapiUri + uuid
-
-	log.Printf("sending to MAPI at %v\n" + methode)
-
-	mapReq, err := http.NewRequest("GET", methode, nil)
-	mapReq.Header.Set("Authorization", "Basic "+h.mapiAuth)
-	mapiResp, err := client.Do(mapReq)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("mapi the status code %v\n", mapiResp.StatusCode)
-	if mapiResp.StatusCode != 200 {
-		if mapiResp.StatusCode == 404 {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		//TODO break this down
-		w.WriteHeader(http.StatusBadGateway)
-		return
-	}
-
-	// order of writing a response
-	//header
-	//responseCode
-	//body
-
-	matUrl := h.matUri + uuid
-	log.Printf("sending to MAT at %v\n" + matUrl)
-
-	matReq, err := http.NewRequest("POST", matUrl, mapiResp.Body)
-	matReq.Host = h.matHostHeader
-	matReq.Header.Set("Content-Type", "application/json")
-
-	q := matReq.URL.Query()
-	q.Add("preview", "true")
-	matReq.URL.RawQuery = q.Encode()
-
-	matResp, err := client.Do(matReq)
-
-	log.Printf("mat the status code %v\n", matResp.StatusCode)
-
-	if matResp.StatusCode != 200 {
-		//TODO break this down
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	io.Copy(w, matResp.Body)
 }
