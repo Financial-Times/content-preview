@@ -20,7 +20,6 @@ var timeout = time.Duration(5 * time.Second)
 var client = &http.Client{Timeout: timeout}
 
 func main() {
-
 	log.SetLevel(log.InfoLevel)
 	log.Infof("%s service started with args %s", serviceName, os.Args)
 
@@ -39,6 +38,13 @@ func main() {
 		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
 		r.HandleFunc("/__ping", pingHandler)
 
+		log.WithFields(log.Fields{
+			"mapi-uri" : *mapiUri,
+			"mat-uri"  : *matUri,
+			"mapi-auth" : *mapiAuth,
+			"mat-host-header" : *matHostHeader,
+		}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
+
 		err := http.ListenAndServe( ":"+*appPort,
 			httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
 				httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), r)))
@@ -48,12 +54,7 @@ func main() {
 		}
 
 	}
-	log.WithFields(log.Fields{
-		"mapi-uri" : *mapiUri,
-		"mat-uri"  : *matUri,
-		"mapi-auth" : *mapiAuth,
-		"mat-host-header" : *matHostHeader,
-	}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
+
 	app.Run(os.Args)
 
 }
