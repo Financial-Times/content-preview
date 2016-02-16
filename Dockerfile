@@ -19,5 +19,5 @@ RUN apk add --update bash \
 
 CMD exec /content-preview-app --app-port $APP_PORT --source-app-auth $SOURCE_APP_AURTH \
 --source-app-uri $SOURCE_APP_URI  --transform-app-uri $TRANSFORM_APP_URI \
---transform-app-host-header $TRANSFORM_APP_HOST_HEADER  \
+--transform-app-host-header $TRANSFORM_APP_HOST_HEADER \
 --source-app-health-uri $SOURCE_APP_HEALTH_URI --transform-app-health-uri $TRANSFORM_APP_HEALTH_URI
