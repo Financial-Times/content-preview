@@ -10,17 +10,17 @@ import (
 	"golang.org/x/net/context"
 )
 
-const mapiPath = "/eom-file/"
-const matPath ="/content-transform/"
 const uuidKey = "uuid"
 
 var logger = log.New()
 
 type Handlers struct {
-	mapiAuth      string
-	matHostHeader string
-	mapiUri       string
-	matUri        string
+	nativeContentAppAuth      string
+	transformAppHostHeader    string
+	nativeContentAppUri       string
+	transformAppUri           string
+	nativeContentAppHealthUri string
+	transformAppHealthUri     string
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 
 	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
 	ctx = context.WithValue(ctx, uuidKey, uuid)
-
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	success, mapiResp := h.getNativeContent(ctx, w)
 	if !success { return }
 	success, matResp := h.getTransformedContent(ctx, *mapiResp, w)
@@ -51,6 +51,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 		mapiResp.Body.Close()
 		return
 	}
+
 	io.Copy(w, matResp.Body)
 	matResp.Body.Close()
 }
@@ -58,7 +59,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s%s", h.mapiUri, mapiPath, uuid)
+	requestUrl := fmt.Sprintf("%s%s", h.nativeContentAppUri, uuid)
 
 
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
@@ -70,7 +71,7 @@ func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) 
 	req, err := http.NewRequest("GET", requestUrl, nil)
 
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
-	req.Header.Set("Authorization", "Basic " + h.mapiAuth)
+	req.Header.Set("Authorization", "Basic " + h.nativeContentAppAuth)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 
@@ -92,7 +93,7 @@ func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) 
 func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	logger.Formatter = new(log.JSONFormatter)
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s%s?preview=true", h.matUri, matPath, uuid)
+	requestUrl := fmt.Sprintf("%s%s?preview=true", h.transformAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 
 	//TODO we need to assert that mapiResp.Header.Get(tid.TransactionIDHeader) ==  transactionId
@@ -103,7 +104,7 @@ func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Resp
 	}).Info("Request to MAT");
 
 	req, err := http.NewRequest("POST", requestUrl, mapiResp.Body)
-	req.Host = h.matHostHeader
+	req.Host = h.transformAppHostHeader
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
 
