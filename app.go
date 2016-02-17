@@ -39,12 +39,10 @@ func main() {
 		handler := Handlers{&sc, appLogger}
 
 		r := mux.NewRouter()
-
 		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(handler.contentPreviewHandler)})
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(buildInfoHandler)})
 		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(*serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 		r.Path("/__ping").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(pingHandler)})
-
 
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 

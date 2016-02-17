@@ -16,6 +16,7 @@ type Handlers struct {
 	log           *AppLogger
 }
 
+
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "pong")
 }
@@ -96,7 +97,6 @@ func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourc
 
 	if err !=nil {
 		h.log.ErrorEvent(h.serviceConfig.transformAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), err, uuid)
-
 		return false, nil
 	}
 
@@ -108,7 +108,6 @@ func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourc
 	}
 
 	h.log.ResponseEvent(h.serviceConfig.transformAppName, req.URL.String(), resp, uuid)
-
 	return true, resp
 }
 
