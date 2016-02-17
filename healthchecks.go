@@ -5,28 +5,28 @@ import (
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 )
 
-func (h Handlers) mapiCheck() fthealth.Check {
+func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "Editorial users won't be able to preview articles",
-		Name:             "Methode Api Availabililty Check",
+		Name:             sc.sourceAppName + " Availabililty Check",
 		PanicGuide:       "TODO - write panic guide",
 		Severity:         1,
-		TechnicalSummary: "Checks that Methode API Service is reachable. Article Preview Service requests native content from Methode API service.",
+		TechnicalSummary: "Checks that " + sc.sourceAppName + " Service is reachable. Article Preview Service requests native content from " + sc.sourceAppName + " service.",
 		Checker:          func() (string, error) {
-			return checkServiceAvailability("Methode API", h.nativeContentAppHealthUri, h.nativeContentAppAuth, "")
+			return checkServiceAvailability(sc.sourceAppName, sc.nativeContentAppHealthUri, sc.nativeContentAppAuth, "")
 		},
 	}
 }
 
-func (h Handlers) matCheck() fthealth.Check {
+func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	return fthealth.Check {
 		BusinessImpact:   "Editorial users won't be able to preview articles",
-		Name:             "Methode Article Transformer Availabililty Check",
+		Name:             sc.transformAppName + " Availabililty Check",
 		PanicGuide:       "TODO - write panic guide",
 		Severity:         1,
-		TechnicalSummary: "Checks that Methode Article Transformer Service is reachable. Article Preview Service relies on Methode Article Transformer service to process content.",
+		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on "+ sc.transformAppName + " service to process content.",
 		Checker:          func() (string, error) {
-			return checkServiceAvailability("Methode Article Transformer", h.transformAppHealthUri, "", h.transformAppHostHeader)
+			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
 	}
 }
