@@ -20,7 +20,7 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "pong")
 }
 
-func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
+func buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "build-info")
 }
 
