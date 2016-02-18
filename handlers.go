@@ -39,7 +39,6 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	success, transformAppResponse := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
 	if(!success) {
 		nativeContentSourceAppResponse.Body.Close()
-
 		return
 	}
 
@@ -83,7 +82,6 @@ func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourc
 
 	//TODO we need to assert that resp.Header.Get(tid.TransactionIDHeader) ==  transactionId
 	//to ensure that we are logging exactly what is actually passed around in the headers
-
 	h.log.RequestEvent(h.serviceConfig.transformAppName, requestUrl, transactionId, uuid)
 
 	req, err := http.NewRequest("POST", requestUrl, nativeContentSourceAppResponse.Body)
@@ -94,7 +92,6 @@ func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourc
 	resp, err = client.Do(req)
 
 	//this happens when hostname cannot be resolved or host is not accessible
-
 	if err !=nil {
 		h.log.ErrorEvent(h.serviceConfig.transformAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), err, uuid)
 		return false, nil
