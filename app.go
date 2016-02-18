@@ -36,8 +36,8 @@ func main() {
 		appLogger := NewAppLogger()
 		sc := ServiceConfig {*serviceName, *appPort, *nativeContentAppAuth,
 			*transformAppHostHeader, *nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri, *sourceAppName, *transformAppName}
-		handler := Handlers{&sc, appLogger}
-		contentHandler := ContentHandler{&handler}
+
+		contentHandler := ContentHandler{&sc, appLogger}
 
 		r := mux.NewRouter()
 		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
@@ -45,6 +45,7 @@ func main() {
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(buildInfoHandler)})
 		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(*serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 		r.Path("/__ping").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(pingHandler)})
+		r.HandleFunc("/__metrics", metricsHttpEndpoint)
 
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 

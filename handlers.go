@@ -27,30 +27,10 @@ func buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type ContentHandler struct {
-	h      *Handlers
+	serviceConfig *ServiceConfig
+	log           *AppLogger
 }
-func (ha ContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
-
-	ha.h.log.TransactionStartedEvent(r.RequestURI, tid.GetTransactionIDFromRequest(r), uuid)
-
-	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
-	ctx = context.WithValue(ctx, uuidKey, uuid)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	success, nativeContentSourceAppResponse := ha.h.getNativeContent(ctx, w)
-	if !success { return }
-	success, transformAppResponse := ha.h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
-	if(!success) {
-		nativeContentSourceAppResponse.Body.Close()
-		return
-	}
-
-	io.Copy(w, transformAppResponse.Body)
-	transformAppResponse.Body.Close()
-}
-
-func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
+func (h ContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
@@ -71,7 +51,7 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	transformAppResponse.Body.Close()
 }
 
-func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.nativeContentAppUri, uuid)
 
@@ -100,7 +80,7 @@ func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) 
 	return true, resp
 }
 
-func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s?preview=true", h.serviceConfig.transformAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
