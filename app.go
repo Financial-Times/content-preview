@@ -8,7 +8,6 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/Sirupsen/logrus"
 	"time"
-	"github.com/rcrowley/go-metrics"
 	"net/http"
 	"os"
 )
@@ -33,18 +32,19 @@ func main() {
 	transformAppName := app.StringOpt("transform-app-name", "Native Content Transformer Service", "Service name of the content transformer application")
 
 	app.Action = func() {
-		appLogger := NewAppLogger()
 		sc := ServiceConfig {*serviceName, *appPort, *nativeContentAppAuth,
 			*transformAppHostHeader, *nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri, *sourceAppName, *transformAppName}
-
-		contentHandler := ContentHandler{&sc, appLogger}
+		appLogger := NewAppLogger()
+		metricsHandler := NewMetrics()
+		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
 
 		r := mux.NewRouter()
-		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
-			httphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
+		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": httphandlers.HTTPMetricsHandler(metricsHandler.registry,
+httphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(buildInfoHandler)})
 		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(*serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 		r.Path("/__ping").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(pingHandler)})
+
 		r.HandleFunc("/__metrics", metricsHttpEndpoint)
 
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
