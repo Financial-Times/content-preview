@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 	"io"
 	"net/http"
+	"github.com/rcrowley/go-metrics"
 )
 
 const uuidKey = "uuid"
@@ -23,6 +24,30 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 func buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "build-info")
+}
+
+type ContentHandler struct {
+	h      *Handlers
+}
+func (ha ContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uuid := vars["uuid"]
+
+	ha.h.log.TransactionStartedEvent(r.RequestURI, tid.GetTransactionIDFromRequest(r), uuid)
+
+	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
+	ctx = context.WithValue(ctx, uuidKey, uuid)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	success, nativeContentSourceAppResponse := ha.h.getNativeContent(ctx, w)
+	if !success { return }
+	success, transformAppResponse := ha.h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
+	if(!success) {
+		nativeContentSourceAppResponse.Body.Close()
+		return
+	}
+
+	io.Copy(w, transformAppResponse.Body)
+	transformAppResponse.Body.Close()
 }
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +133,10 @@ func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourc
 	return true, resp
 }
 
+//Metrics
+func metricsHttpEndpoint(w http.ResponseWriter, r *http.Request) {
+	metrics.WriteOnce(metrics.DefaultRegistry, w)
+}
 
 
 
