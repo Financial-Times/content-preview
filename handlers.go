@@ -33,18 +33,17 @@ func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) 
 	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
 	ctx = context.WithValue(ctx, uuidKey, uuid)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	success, mapiResp := h.getNativeContent(ctx, w)
-	if !success {
-		return
-	}
-	success, matResp := h.getTransformedContent(ctx, *mapiResp, w)
-	if !success {
-		mapiResp.Body.Close()
+	success, nativeContentSourceAppResponse := h.getNativeContent(ctx, w)
+	if !success { return }
+	success, transformAppResponse := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
+	if(!success) {
+		nativeContentSourceAppResponse.Body.Close()
+
 		return
 	}
 
-	io.Copy(w, matResp.Body)
-	matResp.Body.Close()
+	io.Copy(w, transformAppResponse.Body)
+	transformAppResponse.Body.Close()
 }
 
 func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
@@ -76,7 +75,7 @@ func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) 
 	return true, resp
 }
 
-func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s?preview=true", h.serviceConfig.transformAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
@@ -86,7 +85,7 @@ func ( h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Resp
 
 	h.log.RequestEvent(h.serviceConfig.transformAppName, requestUrl, transactionId, uuid)
 
-	req, err := http.NewRequest("POST", requestUrl, mapiResp.Body)
+	req, err := http.NewRequest("POST", requestUrl, nativeContentSourceAppResponse.Body)
 	req.Host = h.serviceConfig.transformAppHostHeader
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
