@@ -1,15 +1,16 @@
 package main
 
 import (
-	"os"
-	"net/http"
+	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	fthealth "github.com/Financial-Times/go-fthealth/v1a"
-	log "github.com/Sirupsen/logrus"
-	"time"
 	"github.com/rcrowley/go-metrics"
-	"github.com/Financial-Times/http-handlers-go"
+	"net/http"
+	"os"
+	"time"
 )
 
 const serviceName = "content-preview"
@@ -33,20 +34,19 @@ func main() {
 	app.Action = func() {
 		r := mux.NewRouter()
 		handler := Handlers{*nativeContentAppAuth, *transformAppHostHeader, *nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri}
-		r.HandleFunc("/content-preview/{uuid}", handler.contentPreviewHandler)
-		r.HandleFunc("/build-info", handler.buildInfoHandler)
-		r.HandleFunc("/__health", fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))
-		r.HandleFunc("/__ping", pingHandler)
+		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(handler.contentPreviewHandler)})
+		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(handler.buildInfoHandler)})
+		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(serviceName, serviceDescription, handler.mapiCheck(), handler.matCheck()))})
+		r.Path("/__ping").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(handler.pingHandler)})
 
 		log.WithFields(log.Fields{
-			"source-app-uri" : *nativeContentAppUri,
-			"transform-app-uri"  : *transformAppUri,
-			"source-app-health-uri" : *nativeContentAppHealthUri,
-			"transform-app-health-uri" : *transformAppHealthUri,
-
+			"source-app-uri":           *nativeContentAppUri,
+			"transform-app-uri":        *transformAppUri,
+			"source-app-health-uri":    *nativeContentAppHealthUri,
+			"transform-app-health-uri": *transformAppHealthUri,
 		}).Infof("%s service started on localhost:%s with configuration", serviceName, *appPort)
 
-		err := http.ListenAndServe( ":"+*appPort,
+		err := http.ListenAndServe(":"+*appPort,
 			httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry,
 				httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), r)))
 
