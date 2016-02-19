@@ -44,8 +44,7 @@ httphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), cont
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(buildInfoHandler)})
 		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(*serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 		r.Path("/__ping").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(pingHandler)})
-
-		r.HandleFunc("/__metrics", metricsHttpEndpoint)
+		r.Path("/__metrics").Handler(handlers.MethodHandler{"GET" : http.HandlerFunc(metricsHttpEndpoint)})
 
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 
