@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	tid "github.com/Financial-Times/transactionid-utils-go"
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	tid "github.com/Financial-Times/transactionid-utils-go"
 	"golang.org/x/net/context"
 	"io"
 	"net/http"
@@ -12,118 +11,108 @@ import (
 
 const uuidKey = "uuid"
 
-var logger = log.New()
-
 type Handlers struct {
-	nativeContentAppAuth      string
-	transformAppHostHeader    string
-	nativeContentAppUri       string
-	transformAppUri           string
-	nativeContentAppHealthUri string
-	transformAppHealthUri     string
+	serviceConfig *ServiceConfig
+	log           *AppLogger
 }
 
-func (h Handlers) pingHandler(w http.ResponseWriter, r *http.Request) {
+func pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "pong")
 }
 
-func (h Handlers) buildInfoHandler(w http.ResponseWriter, r *http.Request) {
+func buildInfoHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "build-info")
 }
 
 func (h Handlers) contentPreviewHandler(w http.ResponseWriter, r *http.Request) {
-	logger.Formatter = new(log.JSONFormatter)
-	logger.WithFields(log.Fields{
-		"requestUri":    r.RequestURI,
-		"transactionId": tid.GetTransactionIDFromRequest(r),
-	}).Info("request started")
-
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
+
+	h.log.TransactionStartedEvent(r.RequestURI, tid.GetTransactionIDFromRequest(r), uuid)
 
 	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
 	ctx = context.WithValue(ctx, uuidKey, uuid)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	success, mapiResp := h.getNativeContent(ctx, w)
-	if !success {
-		return
-	}
-	success, matResp := h.getTransformedContent(ctx, *mapiResp, w)
-	if !success {
-		mapiResp.Body.Close()
+	success, nativeContentSourceAppResponse := h.getNativeContent(ctx, w)
+	if !success { return }
+	success, transformAppResponse := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
+	if(!success) {
+		nativeContentSourceAppResponse.Body.Close()
+
 		return
 	}
 
-	io.Copy(w, matResp.Body)
-	matResp.Body.Close()
+	io.Copy(w, transformAppResponse.Body)
+	transformAppResponse.Body.Close()
 }
 
-func (h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
-	logger.Formatter = new(log.JSONFormatter)
+func ( h Handlers) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s", h.nativeContentAppUri, uuid)
+	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.nativeContentAppUri, uuid)
 
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
-	logger.WithFields(log.Fields{
-		"requestUri":    requestUrl,
-		"transactionId": transactionId,
-	}).Info("Request to MAPI")
+	h.log.RequestEvent(h.serviceConfig.sourceAppName, requestUrl, transactionId, uuid)
 
 	req, err := http.NewRequest("GET", requestUrl, nil)
 
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
-	req.Header.Set("Authorization", "Basic "+h.nativeContentAppAuth)
+	req.Header.Set("Authorization", "Basic " + h.serviceConfig.nativeContentAppAuth)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 
 	//this happens when hostname cannot be resolved or host is not accessible
-	if err != nil {
-		log.WithFields(log.Fields{"error": err, "transactionId": req.Header.Get(tid.TransactionIDHeader)}).Warnf("Cannot reach MAPI host")
+	if err !=nil {
+		h.log.ErrorEvent(h.serviceConfig.sourceAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), err, uuid)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return false, nil
 	}
 	if resp.StatusCode != http.StatusOK {
-		w.WriteHeader(http.StatusNotFound)
-		log.WithFields(log.Fields{"MAPI.Status": resp.StatusCode, "transactionId": resp.Header.Get(tid.TransactionIDHeader)}).Warnf("Request to MAPI failed")
+		w.WriteHeader(http.StatusNotFound);
+		h.log.RequestFailedEvent(h.serviceConfig.sourceAppName, req.URL.String(), resp, uuid)
 		return false, nil
 	}
-	logger.WithFields(log.Fields{"status": resp.Status, "transactionId": resp.Header.Get(tid.TransactionIDHeader)}).Info("Response from MAPI")
+	h.log.ResponseEvent(h.serviceConfig.sourceAppName, req.URL.String(), resp, uuid)
 	return true, resp
 }
 
-func (h Handlers) getTransformedContent(ctx context.Context, mapiResp http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
-	logger.Formatter = new(log.JSONFormatter)
+func ( h Handlers) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s?preview=true", h.transformAppUri, uuid)
+	requestUrl := fmt.Sprintf("%s%s?preview=true", h.serviceConfig.transformAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 
-	//TODO we need to assert that mapiResp.Header.Get(tid.TransactionIDHeader) ==  transactionId
+	//TODO we need to assert that resp.Header.Get(tid.TransactionIDHeader) ==  transactionId
 	//to ensure that we are logging exactly what is actually passed around in the headers
-	logger.WithFields(log.Fields{
-		"requestUri":    requestUrl,
-		"transactionId": transactionId,
-	}).Info("Request to MAT")
 
-	req, err := http.NewRequest("POST", requestUrl, mapiResp.Body)
-	req.Host = h.transformAppHostHeader
+	h.log.RequestEvent(h.serviceConfig.transformAppName, requestUrl, transactionId, uuid)
+
+	req, err := http.NewRequest("POST", requestUrl, nativeContentSourceAppResponse.Body)
+	req.Host = h.serviceConfig.transformAppHostHeader
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err = client.Do(req)
 
 	//this happens when hostname cannot be resolved or host is not accessible
-	if err != nil {
-		log.WithFields(log.Fields{"error": err, "transactionId": transactionId}).Warnf("Cannot reach MAT host")
-		w.WriteHeader(http.StatusServiceUnavailable)
+
+	if err !=nil {
+		h.log.ErrorEvent(h.serviceConfig.transformAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), err, uuid)
+
 		return false, nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		w.WriteHeader(http.StatusNotFound)
-		log.WithFields(log.Fields{"MAT.Status": resp.StatusCode, "transactionId": transactionId}).Warnf("Request to MAT failed")
+
+		w.WriteHeader(http.StatusNotFound);
+		h.log.RequestFailedEvent(h.serviceConfig.transformAppName, req.URL.String(), resp, uuid)
 		return false, nil
 	}
 
-	logger.WithFields(log.Fields{"status": resp.Status, "requestUrl": req.URL.String(), "transactionId": transactionId}).Info("Response from MAT")
+	h.log.ResponseEvent(h.serviceConfig.transformAppName, req.URL.String(), resp, uuid)
+
 	return true, resp
 }
+
+
+
+
+
