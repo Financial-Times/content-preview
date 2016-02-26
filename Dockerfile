@@ -2,8 +2,7 @@ FROM alpine:3.3
 
 ADD *.go .git /content-preview/
 
-RUN apk add --update bash \
-  && apk --update add git bzr \
+RUN apk --update add git bzr \
   && apk --update add go \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
