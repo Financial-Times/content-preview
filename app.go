@@ -43,10 +43,10 @@ func main() {
 		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": oldhttphandlers.HTTPMetricsHandler(metricsHandler.registry,
 			oldhttphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
 
-		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(httphandlers.BuildInfoHandler)})
+		r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
+		r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
 
 		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(*serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
-		r.Path("/__ping").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(pingHandler)})
 		r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
 
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())

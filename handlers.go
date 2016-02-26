@@ -11,10 +11,6 @@ import (
 
 const uuidKey = "uuid"
 
-func pingHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "pong")
-}
-
 type ContentHandler struct {
 	serviceConfig *ServiceConfig
 	log           *AppLogger
