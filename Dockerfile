@@ -27,5 +27,5 @@ CMD exec /content-preview-app \
     --transform-app-health-uri $TRANSFORM_APP_HEALTH_URI \
     --source-app-name $SOURCE_APP_NAME \
     --transform-app-name $TRANSFORM_APP_NAME \
-    --graphite-tcp-addres $GRAPHITE_TCP_ADDRESS \
+    --graphite-tcp-address $GRAPHITE_TCP_ADDRESS \
     --graphite-prefix $GRAPHITE_PREFIX
