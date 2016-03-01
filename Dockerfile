@@ -12,6 +12,7 @@ RUN apk --update add git bzr \
   && go get -t ./... \
   && go test ./... \
   && LDFLAGS="$(${GOPATH}/src/github.com/Financial-Times/service-status-go/buildinfo/ldFlags.sh)" \
+  && echo "LDFLAGS for build info: ${LDFLAGS}"\
   && go build -ldflags="${LDFLAGS}" \
   && mv content-preview /content-preview-app \
   && apk del go git bzr \
