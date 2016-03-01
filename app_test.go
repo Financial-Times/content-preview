@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/handlers"
@@ -17,6 +18,7 @@ import (
 
 var methodeApiMock *httptest.Server
 var methodeArticleTransformerMock *httptest.Server
+var contentPreviewService *httptest.Server
 
 var somePort = rand.Int()%10000 + 40000
 
@@ -97,8 +99,60 @@ func stopServiceMocks() {
 	methodeArticleTransformerMock.Close()
 }
 
-func TestSomething(t *testing.T) {
+func setupContentPreviewService() {
+
+	methodeApiUrl := "http://localhost:" + strconv.Itoa(somePort) + "/eom-file"
+	nativeContentAppHealthUri := "http://localhost:" + strconv.Itoa(somePort) + "/build-info"
+	methodArticleTransformerUrl := "http://localhost:" + strconv.Itoa(somePort+1) + "/content-transform"
+	transformAppHealthUrl := "http://localhost:" + strconv.Itoa(somePort+1) + "/build-info"
+
+	sc := ServiceConfig{
+		"content-preview",
+		"8084",
+		"default",
+		"methode-article-transformer",
+		methodeApiUrl,
+		methodArticleTransformerUrl,
+		nativeContentAppHealthUri,
+		transformAppHealthUrl,
+		"Native Content Service",
+		"Native Content Transformer Service",
+	}
+
+	appLogger := NewAppLogger()
+	metricsHandler := NewMetrics()
+	contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
+
+	h := setupServiceHandler(sc, metricsHandler, contentHandler)
+
+	methodeArticleTransformerMock = httptest.NewUnstartedServer(h)
+	methodeArticleTransformerMock.Config.Addr = ":8084"
+	methodeArticleTransformerMock.Start()
+}
+
+func ShouldReturn200AndTrasformerOutput(t *testing.T) {
 	setupServiceMocks()
-	assert.Equal(t, "pong", "pong")
+	setupContentPreviewService()
+
+	resp, _ := http.Get("http://localhost:8084/content-preview")
+	defer resp.Body.Close()
+
+	assert.Equal(t, resp.Status, "200", "Response status should be 200")
+
+	file, _ := os.Open("test-resources/methode-article-transformer-output.json")
+	defer file.Close()
+
+	expectedOutput := getStringFromReader(file)
+	actualOutput := getStringFromReader(resp.Body)
+
+	assert.Equal(t, expectedOutput, actualOutput, "Response body shoud be equal to transformer response body")
+
+	defer contentPreviewService.Close()
 	stopServiceMocks()
+}
+
+func getStringFromReader(r io.Reader) string {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r)
+	return buf.String()
 }
