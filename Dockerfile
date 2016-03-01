@@ -24,7 +24,7 @@ CMD exec /content-preview-app \
 		--transform-app-uri $TRANSFORM_APP_URI \
 		--transform-app-host-header $TRANSFORM_APP_HOST_HEADER \
 		--source-app-health-uri $SOURCE_APP_HEALTH_URI \
-		--transform-app-health-uri $TRANSFORM_APP_HEALTH_URI
+		--transform-app-health-uri $TRANSFORM_APP_HEALTH_URI \
 		--source-app-name $SOURCE_APP_NAME \
 		--transform-app-name $TRANSFORM_APP_NAME \
 		--graphite-tcp-address $GRAPHITE_TCP_ADDRESS \
