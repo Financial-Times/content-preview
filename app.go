@@ -27,8 +27,8 @@ func main() {
 	nativeContentAppUri := app.StringOpt("source-app-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "URI of the Native Content Source Application endpoint")
 	nativeContentAppHealthUri := app.StringOpt("source-app-health-uri", "http://methode-api-uk-p.svc.ft.com/build-info", "URI of the Native Content Source Application health endpoint")
 	transformAppHostHeader := app.StringOpt("transform-app-host-header", "methode-article-transformer", "Transform Application Host Header")
-	transformAppUri := app.StringOpt("transform-app-uri", "http://ftapp05951-lvpr-uk-int:8080/content-transform/", "URI of the Transform Application endpoint")
-	transformAppHealthUri := app.StringOpt("transform-app-health-uri", "http://methode-article-transformer-01-pr-uk-int.svc.ft.com/build-info", "URI of the Transform Application health endpoint")
+	transformAppUri := app.StringOpt("transform-app-uri", "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/", "URI of the Transform Application endpoint")
+	transformAppHealthUri := app.StringOpt("transform-app-health-uri", "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info", "URI of the Transform Application health endpoint")
 	sourceAppName := app.StringOpt("source-app-name", "Native Content Service", "Service name of the source application")
 	transformAppName := app.StringOpt("transform-app-name", "Native Content Transformer Service", "Service name of the content transformer application")
 
