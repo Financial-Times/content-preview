@@ -16,20 +16,19 @@ import (
 	"testing"
 )
 
+var contentPreviewService *httptest.Server
 var methodeApiMock *httptest.Server
 var methodeArticleTransformerMock *httptest.Server
-var contentPreviewService *httptest.Server
 
 var somePort = rand.Int()%10000 + 40000
 
-func setupServiceMocks() {
-	setupMethodeApiMock()
-	setupMethodeArticleTransformerMock()
-}
-
-func setupMethodeApiMock() {
+func startMethodeApiMock(status string) {
 	r := mux.NewRouter()
-	r.Path("/eom-file/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(methodeApiHandlerMock)})
+	if status == "happy" {
+		r.Path("/eom-file/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(methodeApiHandlerMock)})
+	} else {
+		r.Path("/eom-file/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(unhappyHandler)})
+	}
 	methodeApiMock = httptest.NewUnstartedServer(r)
 	methodeApiMock.Config.Addr = ":" + strconv.Itoa(somePort)
 	methodeApiMock.Start()
@@ -61,9 +60,18 @@ func methodeApiHandlerMock(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func setupMethodeArticleTransformerMock() {
+func unhappyHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func startMethodeArticleTransformerMock(status string) {
 	r := mux.NewRouter()
-	r.Path("/content-transform/{uuid}").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
+	if status == "happy" {
+		r.Path("/content-transform/{uuid}").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
+	} else {
+		r.Path("/eom-file/{uuid}").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(unhappyHandler)})
+	}
+
 	methodeArticleTransformerMock = httptest.NewUnstartedServer(r)
 	methodeArticleTransformerMock.Config.Addr = ":" + strconv.Itoa(somePort+1)
 	methodeArticleTransformerMock.Start()
@@ -75,7 +83,7 @@ func methodeArticleTransformerHandlerMock(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
-	if r.Header.Get(tid.TransactionIDHeader) != "" {
+	if r.Header.Get(tid.TransactionIDHeader) != "" && isEqualToMethodeApiOutput(r.Body) {
 		w.Header().Set(tid.TransactionIDHeader, r.Header.Get(tid.TransactionIDHeader))
 	} else {
 		w.Header().Set(tid.TransactionIDHeader, "tid_w58gqvazux")
@@ -94,12 +102,23 @@ func methodeArticleTransformerHandlerMock(w http.ResponseWriter, r *http.Request
 
 }
 
+func isEqualToMethodeApiOutput(r io.Reader) bool {
+	file, err := os.Open("test-resources/methode-api-output.json")
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	methodeApiOutput := getStringFromReader(file)
+	readerOutput := getStringFromReader(r)
+	return methodeApiOutput == readerOutput
+}
+
 func stopServiceMocks() {
 	methodeApiMock.Close()
 	methodeArticleTransformerMock.Close()
 }
 
-func setupContentPreviewService() {
+func startContentPreviewService() {
 
 	methodeApiUrl := "http://localhost:" + strconv.Itoa(somePort) + "/eom-file"
 	nativeContentAppHealthUri := "http://localhost:" + strconv.Itoa(somePort) + "/build-info"
@@ -131,8 +150,9 @@ func setupContentPreviewService() {
 }
 
 func ShouldReturn200AndTrasformerOutput(t *testing.T) {
-	setupServiceMocks()
-	setupContentPreviewService()
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
 
 	resp, _ := http.Get("http://localhost:8084/content-preview")
 	defer resp.Body.Close()
