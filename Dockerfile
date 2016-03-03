@@ -29,4 +29,6 @@ CMD exec /content-preview-app \
 		--source-app-name $SOURCE_APP_NAME \
 		--transform-app-name $TRANSFORM_APP_NAME \
 		--graphite-tcp-address $GRAPHITE_TCP_ADDRESS \
-		--graphite-prefix $GRAPHITE_PREFIX
+		--graphite-prefix $GRAPHITE_PREFIX \
+		--source-app-panic-guide $SOURCE_APP_PANIC_GUIDE \
+		--transform-panic-guide $TRANSFORM_APP_PANIC_GUIDE
