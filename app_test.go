@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -23,8 +23,10 @@ func startMethodeApiMock(status string) {
 	r := mux.NewRouter()
 	if status == "happy" {
 		r.Path("/eom-file/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(methodeApiHandlerMock)})
+		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(happyHandler)})
 	} else {
 		r.Path("/eom-file/{uuid}").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(unhappyHandler)})
+		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(unhappyHandler)})
 	}
 	methodeApiMock = httptest.NewServer(r)
 }
@@ -59,12 +61,18 @@ func unhappyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
+func happyHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 func startMethodeArticleTransformerMock(status string) {
 	r := mux.NewRouter()
 	if status == "happy" {
 		r.Path("/content-transform/{uuid}").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
+		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(happyHandler)})
 	} else {
 		r.Path("/content-transform/{uuid}").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(unhappyHandler)})
+		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(unhappyHandler)})
 	}
 
 	methodeArticleTransformerMock = httptest.NewServer(r)
@@ -148,7 +156,7 @@ func TestShouldReturn200AndTrasformerOutput(t *testing.T) {
 	defer stopServices()
 	resp, err := http.Get(contentPreviewService.URL + "/content-preview/d7db73ec-cf53-11e5-92a1-c5e23ef99c77")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 
@@ -177,7 +185,7 @@ func TestShouldReturn404(t *testing.T) {
 
 	resp, err := http.Get(contentPreviewService.URL + "/content-preview/158ab514-f989-4abc-b42b-b3edf0811899")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 
@@ -195,7 +203,7 @@ func TestShouldReturn503whenMethodeApiIsNotHappy(t *testing.T) {
 
 	resp, err := http.Get(contentPreviewService.URL + "/content-preview/d7db73ec-cf53-11e5-92a1-c5e23ef99c77")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 
@@ -209,7 +217,7 @@ func TestShouldReturn503whenMethodeApiIsNotAvailable(t *testing.T) {
 
 	resp, err := http.Get(contentPreviewService.URL + "/content-preview/d7db73ec-cf53-11e5-92a1-c5e23ef99c77")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 
@@ -224,7 +232,7 @@ func TestShouldReturn503whenTransformerIsNotHappy(t *testing.T) {
 
 	resp, err := http.Get(contentPreviewService.URL + "/content-preview/d7db73ec-cf53-11e5-92a1-c5e23ef99c77")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 
@@ -238,9 +246,91 @@ func TestShouldReturn503whenTransformerNotAvailable(t *testing.T) {
 
 	resp, err := http.Get(contentPreviewService.URL + "/content-preview/d7db73ec-cf53-11e5-92a1-c5e23ef99c77")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode, "Response status should be 503")
+}
+
+func TestShouldBeHealthy(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/__health")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Response status should be 200")
+
+	var res fthealth.HealthResult
+
+	json.NewDecoder(resp.Body).Decode(&res)
+
+	assert.Equal(t, true, res.Ok, "The service should be healthy")
+}
+
+func TestShouldBeUnhealthyWhenMethodeApiIsNotHappy(t *testing.T) {
+	startMethodeApiMock("unhappy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/__health")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Response status should be 200")
+
+	var res fthealth.HealthResult
+
+	json.NewDecoder(resp.Body).Decode(&res)
+
+	assert.Equal(t, false, res.Ok, "The service should be unhealthy")
+
+	for i := 0; i < len(res.Checks); i++ {
+		switch res.Checks[i].Name {
+		case "Native Content Service Availabililty Check":
+			assert.Equal(t, false, res.Checks[i].Ok, "The native content should be unhealthy")
+		case "Native Content Transformer Service Availabililty":
+			assert.Equal(t, true, res.Checks[i].Ok, "The transformer should be healthy")
+		}
+	}
+}
+
+func TestShouldBeUnhealthyWhenTransformerIsNotHappy(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("unhappy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/__health")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Response status should be 200")
+
+	var res fthealth.HealthResult
+
+	json.NewDecoder(resp.Body).Decode(&res)
+
+	assert.Equal(t, false, res.Ok, "The service should be unhealthy")
+
+	for i := 0; i < len(res.Checks); i++ {
+		switch res.Checks[i].Name {
+		case "Native Content Service Availabililty Check":
+			assert.Equal(t, true, res.Checks[i].Ok, "The native content should be healthy")
+		case "Native Content Transformer Service Availabililty":
+			assert.Equal(t, false, res.Checks[i].Ok, "The transformer should be unhealthy")
+		}
+	}
+
 }
