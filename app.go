@@ -15,7 +15,7 @@ import (
 
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
 
-var timeout = time.Duration(5 * time.Second)
+var timeout = time.Duration(10 * time.Second)
 var client = &http.Client{Timeout: timeout}
 
 func main() {
@@ -105,28 +105,26 @@ type ServiceConfig struct {
 	transformAppHealthUri     string
 	sourceAppName             string
 	transformAppName          string
-	sourceAppPanicGuide		  string
-	transformAppPanicGuide	  string
-	graphiteTCPAddress 		  string
-	graphitePrefix			  string
-
+	sourceAppPanicGuide       string
+	transformAppPanicGuide    string
+	graphiteTCPAddress        string
+	graphitePrefix            string
 }
 
 func (sc ServiceConfig) asMap() map[string]interface{} {
 
 	return map[string]interface{}{
-		"service-name":             sc.serviceName,
-		"service-port":             sc.appPort,
-		"source-app-name":          sc.sourceAppName,
-		"source-app-uri":           sc.nativeContentAppUri,
-		"transform-app-name":       sc.transformAppName,
-		"transform-app-uri":        sc.transformAppUri,
-		"source-app-health-uri":    sc.nativeContentAppHealthUri,
-		"transform-app-health-uri": sc.transformAppHealthUri,
-		"source-app-panic-guide":	sc.sourceAppPanicGuide,
+		"service-name":              sc.serviceName,
+		"service-port":              sc.appPort,
+		"source-app-name":           sc.sourceAppName,
+		"source-app-uri":            sc.nativeContentAppUri,
+		"transform-app-name":        sc.transformAppName,
+		"transform-app-uri":         sc.transformAppUri,
+		"source-app-health-uri":     sc.nativeContentAppHealthUri,
+		"transform-app-health-uri":  sc.transformAppHealthUri,
+		"source-app-panic-guide":    sc.sourceAppPanicGuide,
 		"transform-app-panic-guide": sc.transformAppPanicGuide,
-		"graphite-tcp-address": 	sc.graphiteTCPAddress,
-		"graphite-prefix": 			sc.graphitePrefix,
-
+		"graphite-tcp-address":      sc.graphiteTCPAddress,
+		"graphite-prefix":           sc.graphitePrefix,
 	}
 }
