@@ -9,7 +9,7 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   "Editorial users won't be able to preview articles",
 		Name:             sc.sourceAppName + " Availabililty Check",
-		PanicGuide:       "TODO - write panic guide",
+		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.sourceAppName + " Service is reachable. Article Preview Service requests native content from " + sc.sourceAppName + " service.",
 		Checker:          func() (string, error) {
@@ -22,7 +22,7 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	return fthealth.Check {
 		BusinessImpact:   "Editorial users won't be able to preview articles",
 		Name:             sc.transformAppName + " Availabililty Check",
-		PanicGuide:       "TODO - write panic guide",
+		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on "+ sc.transformAppName + " service to process content.",
 		Checker:          func() (string, error) {
