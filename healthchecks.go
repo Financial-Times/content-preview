@@ -1,8 +1,9 @@
 package main
+
 import (
-	"net/http"
 	"fmt"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	"net/http"
 )
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
@@ -12,20 +13,20 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.sourceAppName + " Service is reachable. Article Preview Service requests native content from " + sc.sourceAppName + " service.",
-		Checker:          func() (string, error) {
+		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.sourceAppName, sc.nativeContentAppHealthUri, sc.nativeContentAppAuth, "")
 		},
 	}
 }
 
 func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
-	return fthealth.Check {
+	return fthealth.Check{
 		BusinessImpact:   "Editorial users won't be able to preview articles",
 		Name:             sc.transformAppName + " Availabililty Check",
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on "+ sc.transformAppName + " service to process content.",
-		Checker:          func() (string, error) {
+		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on " + sc.transformAppName + " service to process content.",
+		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
 	}
@@ -34,7 +35,7 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 func checkServiceAvailability(serviceName string, healthUri string, auth string, hostHeader string) (string, error) {
 	req, err := http.NewRequest("GET", healthUri, nil)
 	if auth != "" {
-	req.Header.Set("Authorization", "Basic " + auth)
+		req.Header.Set("Authorization", "Basic "+auth)
 	}
 
 	if hostHeader != "" {

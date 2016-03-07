@@ -65,33 +65,52 @@ func main() {
 	})
 
 	app.Action = func() {
-		sc := ServiceConfig{*serviceName, *appPort, *nativeContentAppAuth, *transformAppHostHeader,
-			*nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri,
-			*sourceAppName, *transformAppName, *sourceAppPanicGuide, *transformAppPanicGuide,
-			*graphiteTCPAddress, *graphitePrefix}
+		sc := ServiceConfig{
+			*serviceName,
+			*appPort,
+			*nativeContentAppAuth,
+			*transformAppHostHeader,
+			*nativeContentAppUri,
+			*transformAppUri,
+			*nativeContentAppHealthUri,
+			*transformAppHealthUri,
+			*sourceAppName,
+			*transformAppName,
+			*sourceAppPanicGuide,
+			*transformAppPanicGuide,
+			*graphiteTCPAddress,
+			*graphitePrefix,
+		}
 		appLogger := NewAppLogger()
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
 
-		r := mux.NewRouter()
-		r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": oldhttphandlers.HTTPMetricsHandler(metricsHandler.registry,
-			oldhttphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
-
-		r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
-		r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
-
-		r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(*serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
-		r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
+		h := setupServiceHandler(sc, metricsHandler, contentHandler)
 
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		err := http.ListenAndServe(":"+*appPort, r)
+		err := http.ListenAndServe(":"+*appPort, h)
+
 		if err != nil {
 			logrus.Fatalf("Unable to start server: %v", err)
 		}
 	}
 	app.Run(os.Args)
+}
+
+func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandler ContentHandler) *mux.Router {
+	r := mux.NewRouter()
+	r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": oldhttphandlers.HTTPMetricsHandler(metricsHandler.registry,
+		oldhttphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
+
+	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
+	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
+
+	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(sc.serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
+	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
+
+	return r
 }
 
 type ServiceConfig struct {

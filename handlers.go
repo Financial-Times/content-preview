@@ -50,17 +50,7 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 
-	//this happens when hostname cannot be resolved or host is not accessible
-	if err != nil {
-		h.handleError(w, err, h.serviceConfig.sourceAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
-		return false, nil
-	}
-	if resp.StatusCode != http.StatusOK {
-		h.handleFailedRequest(w, resp, h.serviceConfig.sourceAppName, req.URL.String(), uuid)
-		return false, nil
-	}
-	h.log.ResponseEvent(h.serviceConfig.sourceAppName, req.URL.String(), resp, uuid)
-	return true, resp
+	return h.handleResponse(req, resp, err, w, uuid)
 }
 
 func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
@@ -78,17 +68,27 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 
+	return h.handleResponse(req, resp, err, w, uuid)
+
+}
+
+func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid string) (ok bool, resp *http.Response) {
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err != nil {
 		h.handleError(w, err, h.serviceConfig.transformAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
 		return false, nil
 	}
-	if resp.StatusCode != http.StatusOK {
-		h.handleFailedRequest(w, resp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
+	switch extResp.StatusCode {
+	case http.StatusOK:
+		h.log.ResponseEvent(h.serviceConfig.transformAppName, req.URL.String(), extResp, uuid)
+		return true, extResp
+	case http.StatusNotFound:
+		h.handleNotFound(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
+		return false, nil
+	default:
+		h.handleFailedRequest(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
 		return false, nil
 	}
-	h.log.ResponseEvent(h.serviceConfig.transformAppName, req.URL.String(), resp, uuid)
-	return true, resp
 }
 
 func (h ContentHandler) handleError(w http.ResponseWriter, err error, serviceName string, url string, transactionId string, uuid string) {
@@ -98,6 +98,12 @@ func (h ContentHandler) handleError(w http.ResponseWriter, err error, serviceNam
 }
 
 func (h ContentHandler) handleFailedRequest(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
+	w.WriteHeader(http.StatusServiceUnavailable)
+	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
+	h.metrics.recordRequestFailedEvent()
+}
+
+func (h ContentHandler) handleNotFound(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
 	w.WriteHeader(http.StatusNotFound)
 	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
 	h.metrics.recordRequestFailedEvent()
