@@ -15,7 +15,7 @@ import (
 
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
 
-var timeout = time.Duration(5 * time.Second)
+var timeout = time.Duration(10 * time.Second)
 var client = &http.Client{Timeout: timeout}
 
 func main() {
@@ -31,10 +31,22 @@ func main() {
 	transformAppHealthUri := app.StringOpt("transform-app-health-uri", "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info", "URI of the Transform Application health endpoint")
 	sourceAppName := app.StringOpt("source-app-name", "Native Content Service", "Service name of the source application")
 	transformAppName := app.StringOpt("transform-app-name", "Native Content Transformer Service", "Service name of the content transformer application")
+	sourceAppPanicGuide := app.String(cli.StringOpt{
+		Name:   "source-app-panic-guide",
+		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
+		Desc:   "Native Content Source application panic guide url for healthcheck. Default panic guide is for content preview.",
+		EnvVar: "SOURCE_APP_PANIC_GUIDE",
+	})
+	transformAppPanicGuide := app.String(cli.StringOpt{
+		Name:   "transform-app-panic-guide",
+		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
+		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for content preview.",
+		EnvVar: "TRANSFORM_APP_PANIC_GUIDE",
+	})
 
 	graphiteTCPAddress := app.String(cli.StringOpt{
 		Name:   "graphite-tcp-address",
-		Value:  "graphite.ft.com:2003",
+		Value:  "",
 		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
 		EnvVar: "GRAPHITE_TCP_ADDRESS",
 	})
@@ -53,8 +65,10 @@ func main() {
 	})
 
 	app.Action = func() {
-		sc := ServiceConfig{*serviceName, *appPort, *nativeContentAppAuth,
-			*transformAppHostHeader, *nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri, *sourceAppName, *transformAppName}
+		sc := ServiceConfig{*serviceName, *appPort, *nativeContentAppAuth, *transformAppHostHeader,
+			*nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri,
+			*sourceAppName, *transformAppName, *sourceAppPanicGuide, *transformAppPanicGuide,
+			*graphiteTCPAddress, *graphitePrefix}
 		appLogger := NewAppLogger()
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
@@ -98,18 +112,26 @@ type ServiceConfig struct {
 	transformAppHealthUri     string
 	sourceAppName             string
 	transformAppName          string
+	sourceAppPanicGuide       string
+	transformAppPanicGuide    string
+	graphiteTCPAddress        string
+	graphitePrefix            string
 }
 
 func (sc ServiceConfig) asMap() map[string]interface{} {
 
 	return map[string]interface{}{
-		"service-name":             sc.serviceName,
-		"service-port":             sc.appPort,
-		"source-app-name":          sc.sourceAppName,
-		"source-app-uri":           sc.nativeContentAppUri,
-		"transform-app-name":       sc.transformAppName,
-		"transform-app-uri":        sc.transformAppUri,
-		"source-app-health-uri":    sc.nativeContentAppHealthUri,
-		"transform-app-health-uri": sc.transformAppHealthUri,
+		"service-name":              sc.serviceName,
+		"service-port":              sc.appPort,
+		"source-app-name":           sc.sourceAppName,
+		"source-app-uri":            sc.nativeContentAppUri,
+		"transform-app-name":        sc.transformAppName,
+		"transform-app-uri":         sc.transformAppUri,
+		"source-app-health-uri":     sc.nativeContentAppHealthUri,
+		"transform-app-health-uri":  sc.transformAppHealthUri,
+		"source-app-panic-guide":    sc.sourceAppPanicGuide,
+		"transform-app-panic-guide": sc.transformAppPanicGuide,
+		"graphite-tcp-address":      sc.graphiteTCPAddress,
+		"graphite-prefix":           sc.graphitePrefix,
 	}
 }
