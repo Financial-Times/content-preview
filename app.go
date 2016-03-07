@@ -65,10 +65,22 @@ func main() {
 	})
 
 	app.Action = func() {
-		sc := ServiceConfig{*serviceName, *appPort, *nativeContentAppAuth, *transformAppHostHeader,
-			*nativeContentAppUri, *transformAppUri, *nativeContentAppHealthUri, *transformAppHealthUri,
-			*sourceAppName, *transformAppName, *sourceAppPanicGuide, *transformAppPanicGuide,
-			*graphiteTCPAddress, *graphitePrefix}
+		sc := ServiceConfig{
+			*serviceName,
+			*appPort,
+			*nativeContentAppAuth,
+			*transformAppHostHeader,
+			*nativeContentAppUri,
+			*transformAppUri,
+			*nativeContentAppHealthUri,
+			*transformAppHealthUri,
+			*sourceAppName,
+			*transformAppName,
+			*sourceAppPanicGuide,
+			*transformAppPanicGuide,
+			*graphiteTCPAddress,
+			*graphitePrefix,
+		}
 		appLogger := NewAppLogger()
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}

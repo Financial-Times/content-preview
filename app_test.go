@@ -138,6 +138,10 @@ func startContentPreviewService() {
 		transformAppHealthUrl,
 		"Native Content Service",
 		"Native Content Transformer Service",
+		"",
+		"",
+		"",
+		"",
 	}
 
 	appLogger := NewAppLogger()
