@@ -11,7 +11,7 @@ RUN apk --update add git bzr \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t ./... \
   && go test ./... \
-  && echo "LDFLAGS for build info: ${cat ldflags.txt}"\
+  && echo "LDFLAGS for build info: ${cat ldflags.txt}" \
   && go build -ldflags="${cat ldflags.txt}" \
   && mv content-preview /content-preview-app \
   && apk del go git bzr \
