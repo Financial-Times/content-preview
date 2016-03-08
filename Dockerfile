@@ -39,4 +39,4 @@ CMD exec /content-preview-app \
 		--graphite-tcp-address $GRAPHITE_TCP_ADDRESS \
 		--graphite-prefix $GRAPHITE_PREFIX \
 		--source-app-panic-guide $SOURCE_APP_PANIC_GUIDE \
-		--transform-panic-guide $TRANSFORM_APP_PANIC_GUIDE
+		--transform-app-panic-guide $TRANSFORM_APP_PANIC_GUIDE
