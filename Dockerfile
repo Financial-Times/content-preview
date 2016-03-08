@@ -1,6 +1,6 @@
 FROM alpine:3.3
 
-ADD *.go .git /content-preview/
+ADD *.go *.txt /content-preview/
 
 RUN apk --update add git bzr \
   && apk --update add go \
@@ -11,9 +11,8 @@ RUN apk --update add git bzr \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t ./... \
   && go test ./... \
-  && LDFLAGS="$(${GOPATH}/src/github.com/Financial-Times/service-status-go/buildinfo/ldFlags.sh)" \
-  && echo "LDFLAGS for build info: ${LDFLAGS}"\
-  && go build -ldflags="${LDFLAGS}" \
+  && echo "LDFLAGS for build info: ${cat ldflags.txt}"\
+  && go build -ldflags="${cat ldflags.txt}" \
   && mv content-preview /content-preview-app \
   && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
