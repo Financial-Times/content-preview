@@ -13,7 +13,7 @@ RUN apk --update add git bzr \
   && go test ./... \
   && LDFLAGS=`cat ldflags.txt` \
   && echo ${LDFLAGS} \
-  && go build -ldflags=${LDFLAGS} \
+  && go build -ldflags="${LDFLAGS}" \
   && mv content-preview /content-preview-app \
   && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
