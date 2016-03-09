@@ -5,9 +5,8 @@ ADD *.go *.txt .git /content-preview/
 RUN apk --update add git bzr \
   && apk --update add go \
   && cd content-preview \
-  && BUILD_ID=`cat build_id.txt` \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
-  && VERSION="version="$BUILD_ID \
+  && VERSION="version=$(git describe --tag 2> /dev/null)" \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
   && REPOSITORY="repository=$(git config --get remote.origin.url)" \
   && REVISION="revision=$(git rev-parse HEAD)" \
