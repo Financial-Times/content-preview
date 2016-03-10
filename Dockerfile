@@ -12,10 +12,15 @@ RUN apk --update add git bzr \
   && go test ./... \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag 2> /dev/null)" \
+  && echo $VERSION \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
+  && echo $DATETIME \
   && REPOSITORY="repository=$(git config --get remote.origin.url)" \
+  && echo $REPOSITORY \
   && REVISION="revision=$(git rev-parse HEAD)" \
+  && echo $REVISION \
   && BUILDER="builder=$(go version)" \
+  && echo $BUILDER \
   && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
   && echo ${LDFLAGS} \
   && go build -ldflags="${LDFLAGS}" \
