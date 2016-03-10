@@ -4,7 +4,12 @@ ADD *.go *.txt .git /content-preview/
 
 RUN apk --update add git bzr \
   && apk --update add go \
-  && cd content-preview \
+  && export GOPATH=/gopath \
+  && REPO_PATH="github.com/Financial-Times/content-preview" \
+  && git clone /content-preview/ $GOPATH/src/${REPO_PATH} \
+  && cd $GOPATH/src/${REPO_PATH} \
+  && go get -t ./... \
+  && go test ./... \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag 2> /dev/null)" \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
@@ -12,13 +17,6 @@ RUN apk --update add git bzr \
   && REVISION="revision=$(git rev-parse HEAD)" \
   && BUILDER="builder=$(go version)" \
   && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
-  && export GOPATH=/gopath \
-  && REPO_PATH="github.com/Financial-Times/content-preview" \
-  && mkdir -p $GOPATH/src/${REPO_PATH} \
-  && mv * $GOPATH/src/${REPO_PATH} \
-  && cd $GOPATH/src/${REPO_PATH} \
-  && go get -t ./... \
-  && go test ./... \
   && echo ${LDFLAGS} \
   && go build -ldflags="${LDFLAGS}" \
   && mv content-preview /content-preview-app \
