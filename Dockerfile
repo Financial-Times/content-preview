@@ -2,14 +2,13 @@ FROM alpine:3.3
 
 ADD *.go *.txt .git /content-preview/
 
-RUN apk --update add git bzr openssh-client \
+RUN apk --update add git bzr \
   && apk --update add go \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && cd /content-preview/ \
   && GIT_URL="$(git config --get remote.origin.url)" \
   && GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
-  && echo $GIT_BRANCH \
   && git clone -b $GIT_BRANCH $GIT_URL $GOPATH/src/${REPO_PATH} \
   && ls $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
@@ -17,20 +16,14 @@ RUN apk --update add git bzr openssh-client \
   && go test ./... \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag 2> /dev/null)" \
-  && echo $VERSION \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
-  && echo $DATETIME \
   && REPOSITORY="repository=$GIT_URL" \
-  && echo $REPOSITORY \
   && REVISION="revision=$(git rev-parse HEAD)" \
-  && echo $REVISION \
   && BUILDER="builder=$(go version)" \
-  && echo $BUILDER \
   && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
-  && echo ${LDFLAGS} \
   && go build -ldflags="${LDFLAGS}" \
   && mv content-preview /content-preview-app \
-  && apk del go git bzr openssh-client \
+  && apk del go git bzr \
   && rm -rf $GOPATH /var/cache/apk/*
 
 CMD exec /content-preview-app \
