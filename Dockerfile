@@ -1,6 +1,6 @@
 FROM alpine:3.3
 
-ADD *.go *.txt .git /content-preview/
+ADD *.go .git /content-preview/
 
 RUN apk --update add git bzr \
   && apk --update add go \
