@@ -10,7 +10,6 @@ RUN apk --update add git bzr \
   && GIT_URL="$(git config --get remote.origin.url)" \
   && GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
   && git clone -b $GIT_BRANCH $GIT_URL $GOPATH/src/${REPO_PATH} \
-  && ls $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t ./... \
   && go test ./... \
