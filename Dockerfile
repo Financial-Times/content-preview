@@ -2,11 +2,13 @@ FROM alpine:3.3
 
 ADD *.go *.txt .git /content-preview/
 
-RUN apk --update add git bzr \
+RUN apk --update add git bzr openssh-client \
   && apk --update add go \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
-  && git clone /content-preview/ $GOPATH/src/${REPO_PATH} \
+  && cd /content-preview/ \
+  && GIT_URL="$(git config --get remote.origin.url)" \
+  && git clone $GIT_URL $GOPATH/src/${REPO_PATH} \
   && ls $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && git fetch \
@@ -27,7 +29,7 @@ RUN apk --update add git bzr \
   && echo ${LDFLAGS} \
   && go build -ldflags="${LDFLAGS}" \
   && mv content-preview /content-preview-app \
-  && apk del go git bzr \
+  && apk del go git bzr openssh-client \
   && rm -rf $GOPATH /var/cache/apk/*
 
 CMD exec /content-preview-app \
