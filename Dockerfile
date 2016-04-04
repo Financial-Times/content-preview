@@ -8,7 +8,9 @@ RUN apk --update add git bzr openssh-client \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && cd /content-preview/ \
   && GIT_URL="$(git config --get remote.origin.url)" \
-  && git clone $GIT_URL $GOPATH/src/${REPO_PATH} \
+  && GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
+  && echo GIT_BRANCH \
+  && git clone $GIT_URL -b $GOPATH/src/${REPO_PATH} \
   && ls $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t ./... \
@@ -18,7 +20,7 @@ RUN apk --update add git bzr openssh-client \
   && echo $VERSION \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
   && echo $DATETIME \
-  && REPOSITORY="repository=$(git config --get remote.origin.url)" \
+  && REPOSITORY="repository=$GIT_URL" \
   && echo $REPOSITORY \
   && REVISION="revision=$(git rev-parse HEAD)" \
   && echo $REVISION \
