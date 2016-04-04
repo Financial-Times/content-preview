@@ -9,8 +9,8 @@ RUN apk --update add git bzr openssh-client \
   && cd /content-preview/ \
   && GIT_URL="$(git config --get remote.origin.url)" \
   && GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
-  && echo GIT_BRANCH \
-  && git clone $GIT_URL -b $GOPATH/src/${REPO_PATH} \
+  && echo $GIT_BRANCH \
+  && git clone -b $GIT_BRANCH $GIT_URL $GOPATH/src/${REPO_PATH} \
   && ls $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
   && go get -t ./... \
