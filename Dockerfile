@@ -2,11 +2,11 @@ FROM alpine:3.3
 
 ADD *.go .git /content-preview/
 
-RUN apk --update add git go \
+RUN apk --update add bash git go \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && cd content-preview \
-  && git fetch \
+  && git fetch --tags \
   && git describe --tag \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag 2> /dev/null)" \
