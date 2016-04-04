@@ -7,7 +7,9 @@ RUN apk --update add git bzr \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && git clone /content-preview/ $GOPATH/src/${REPO_PATH} \
+  && ls $GOPATH/src/${REPO_PATH} \
   && cd $GOPATH/src/${REPO_PATH} \
+  && git fetch \
   && go get -t ./... \
   && go test ./... \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
