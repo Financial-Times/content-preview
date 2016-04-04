@@ -6,7 +6,7 @@ RUN apk --update add bash git go \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && cd content-preview \
-  && git fetch --all \
+  && git fetch --all --tags \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag --always 2> /dev/null)" \
   && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
