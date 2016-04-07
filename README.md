@@ -20,12 +20,17 @@ or update:
 
 ## Running
 
-```
+
 Locally with default configuration:
+
+```
 go install
 $GOPATH/bin/content-preview
+```
 
 Locally with properties set:
+
+```
 go install
 $GOPATH/bin/content-preview \
 --app-port "8084" \
