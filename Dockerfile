@@ -1,8 +1,8 @@
-FROM alpine:3.3
+FROM alpine:3.4
 
 ADD *.go .git /content-preview/
 
-RUN apk --update add git go \
+RUN apk --update add git go ca-certificates \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && cd content-preview \
