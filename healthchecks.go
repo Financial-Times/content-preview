@@ -5,6 +5,7 @@ import (
 	"fmt"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"net/http"
+	"github.com/grafana/grafana/pkg/log"
 )
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
@@ -42,6 +43,8 @@ func checkServiceAvailability(serviceName string, healthUri string, auth string,
 	if hostHeader != "" {
 		req.Host = hostHeader
 	}
+	l := req.Header.Get("Authorization")
+	log.Info("URl=%v Authorization=%s...%s Host=%v", req.URL, l[:14], l[len(l)-4:], req.Host)
 	resp, err := client.Do(req)
 	if err != nil {
 		msg := fmt.Sprintf("%s service is unreachable: %v", serviceName, err)
