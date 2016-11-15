@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"net/http"
-	"errors"
 )
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {

@@ -23,57 +23,57 @@ func main() {
 	app := cli.App("content-preview", serviceDescription)
 	serviceName := app.StringOpt("app-name", "content-preview", "The name of this service")
 	appPort := app.String(cli.StringOpt{
-		Name: "app-port",
-		Value: "8084",
-		Desc:  "Default port for Content Preview app",
+		Name:   "app-port",
+		Value:  "8084",
+		Desc:   "Default port for Content Preview app",
 		EnvVar: "APP_PORT",
 	})
 	sourceAppAuth := app.String(cli.StringOpt{
-		Name: "source-app-auth",
-		Value: "default",
-		Desc: "Basic auth for MAPI",
+		Name:   "source-app-auth",
+		Value:  "default",
+		Desc:   "Basic auth for MAPI",
 		EnvVar: "SOURCE_APP_AUTH",
 	})
 	sourceAppUri := app.String(cli.StringOpt{
-		Name: "source-app-uri",
-		Value: "http://methode-api-uk-p.svc.ft.com/eom-file/",
-		Desc: "URI of the Native Content Source Application endpoint",
+		Name:   "source-app-uri",
+		Value:  "http://methode-api-uk-p.svc.ft.com/eom-file/",
+		Desc:   "URI of the Native Content Source Application endpoint",
 		EnvVar: "SOURCE_APP_URI",
 	})
 	sourceAppAppHealthUri := app.String(cli.StringOpt{
-		Name:"source-app-health-uri",
-		Value: "http://methode-api-uk-p.svc.ft.com/build-info",
-		Desc: "URI of the Native Content Source Application health endpoint",
+		Name:   "source-app-health-uri",
+		Value:  "http://methode-api-uk-p.svc.ft.com/build-info",
+		Desc:   "URI of the Native Content Source Application health endpoint",
 		EnvVar: "SOURCE_APP_HEALTH_URI",
 	})
 	transformAppHostHeader := app.String(cli.StringOpt{
-		Name: "transform-app-host-header",
-		Value: "methode-article-transformer",
-		Desc: "Transform Application Host Header",
+		Name:   "transform-app-host-header",
+		Value:  "methode-article-transformer",
+		Desc:   "Transform Application Host Header",
 		EnvVar: "TRANSFORM_APP_HOST_HEADER",
 	})
 	transformAppUri := app.String(cli.StringOpt{
-		Name: "transform-app-uri",
-		Value: "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/",
-		Desc: "URI of the Transform Application endpoint",
+		Name:   "transform-app-uri",
+		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/",
+		Desc:   "URI of the Transform Application endpoint",
 		EnvVar: "TRANSFORM_APP_URI",
 	})
 	transformAppHealthUri := app.String(cli.StringOpt{
-		Name: "transform-app-health-uri",
-		Value: "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info",
-		Desc: "URI of the Transform Application health endpoint",
+		Name:   "transform-app-health-uri",
+		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info",
+		Desc:   "URI of the Transform Application health endpoint",
 		EnvVar: "TRANSFORM_APP_HEALTH_URI",
 	})
 	sourceAppName := app.String(cli.StringOpt{
-		Name:"source-app-name",
-		Value: "Native Content Service",
-		Desc: "Service name of the source application",
+		Name:   "source-app-name",
+		Value:  "Native Content Service",
+		Desc:   "Service name of the source application",
 		EnvVar: "SOURCE_APP_NAME",
 	})
 	transformAppName := app.String(cli.StringOpt{
-		Name: "transform-app-name",
-		Value: "Native Content Transformer Service",
-		Desc: "Service name of the content transformer application",
+		Name:   "transform-app-name",
+		Value:  "Native Content Transformer Service",
+		Desc:   "Service name of the content transformer application",
 		EnvVar: "TRANSFORM_APP_NAME",
 	})
 	sourceAppPanicGuide := app.String(cli.StringOpt{
