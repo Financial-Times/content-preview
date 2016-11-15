@@ -22,15 +22,60 @@ func main() {
 
 	app := cli.App("content-preview", serviceDescription)
 	serviceName := app.StringOpt("app-name", "content-preview", "The name of this service")
-	appPort := app.StringOpt("app-port", "8084", "Default port for Content Preview app")
-	nativeContentAppAuth := app.StringOpt("source-app-auth", "default", "Basic auth for MAPI")
-	nativeContentAppUri := app.StringOpt("source-app-uri", "http://methode-api-uk-p.svc.ft.com/eom-file/", "URI of the Native Content Source Application endpoint")
-	nativeContentAppHealthUri := app.StringOpt("source-app-health-uri", "http://methode-api-uk-p.svc.ft.com/build-info", "URI of the Native Content Source Application health endpoint")
-	transformAppHostHeader := app.StringOpt("transform-app-host-header", "methode-article-transformer", "Transform Application Host Header")
-	transformAppUri := app.StringOpt("transform-app-uri", "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/", "URI of the Transform Application endpoint")
-	transformAppHealthUri := app.StringOpt("transform-app-health-uri", "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info", "URI of the Transform Application health endpoint")
-	sourceAppName := app.StringOpt("source-app-name", "Native Content Service", "Service name of the source application")
-	transformAppName := app.StringOpt("transform-app-name", "Native Content Transformer Service", "Service name of the content transformer application")
+	appPort := app.String(cli.StringOpt{
+		Name: "app-port",
+		Value: "8084",
+		Desc:  "Default port for Content Preview app",
+		EnvVar: "APP_PORT",
+	})
+	sourceAppAuth := app.String(cli.StringOpt{
+		Name: "source-app-auth",
+		Value: "default",
+		Desc: "Basic auth for MAPI",
+		EnvVar: "SOURCE_APP_AUTH",
+	})
+	sourceAppUri := app.String(cli.StringOpt{
+		Name: "source-app-uri",
+		Value: "http://methode-api-uk-p.svc.ft.com/eom-file/",
+		Desc: "URI of the Native Content Source Application endpoint",
+		EnvVar: "SOURCE_APP_URI",
+	})
+	sourceAppAppHealthUri := app.String(cli.StringOpt{
+		Name:"source-app-health-uri",
+		Value: "http://methode-api-uk-p.svc.ft.com/build-info",
+		Desc: "URI of the Native Content Source Application health endpoint",
+		EnvVar: "SOURCE_APP_HEALTH_URI",
+	})
+	transformAppHostHeader := app.String(cli.StringOpt{
+		Name: "transform-app-host-header",
+		Value: "methode-article-transformer",
+		Desc: "Transform Application Host Header",
+		EnvVar: "TRANSFORM_APP_HOST_HEADER",
+	})
+	transformAppUri := app.String(cli.StringOpt{
+		Name: "transform-app-uri",
+		Value: "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/",
+		Desc: "URI of the Transform Application endpoint",
+		EnvVar: "TRANSFORM_APP_URI",
+	})
+	transformAppHealthUri := app.String(cli.StringOpt{
+		Name: "transform-app-health-uri",
+		Value: "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info",
+		Desc: "URI of the Transform Application health endpoint",
+		EnvVar: "TRANSFORM_APP_HEALTH_URI",
+	})
+	sourceAppName := app.String(cli.StringOpt{
+		Name:"source-app-name",
+		Value: "Native Content Service",
+		Desc: "Service name of the source application",
+		EnvVar: "SOURCE_APP_NAME",
+	})
+	transformAppName := app.String(cli.StringOpt{
+		Name: "transform-app-name",
+		Value: "Native Content Transformer Service",
+		Desc: "Service name of the content transformer application",
+		EnvVar: "TRANSFORM_APP_NAME",
+	})
 	sourceAppPanicGuide := app.String(cli.StringOpt{
 		Name:   "source-app-panic-guide",
 		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
@@ -43,7 +88,6 @@ func main() {
 		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for content preview.",
 		EnvVar: "TRANSFORM_APP_PANIC_GUIDE",
 	})
-
 	graphiteTCPAddress := app.String(cli.StringOpt{
 		Name:   "graphite-tcp-address",
 		Value:  "",
@@ -56,23 +100,21 @@ func main() {
 		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.sections-rw-neo4j.1",
 		EnvVar: "GRAPHITE_PREFIX",
 	})
-
 	logMetrics := app.Bool(cli.BoolOpt{
 		Name:   "log-metrics",
 		Value:  false,
 		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
 		EnvVar: "LOG_METRICS",
 	})
-
 	app.Action = func() {
 		sc := ServiceConfig{
 			*serviceName,
 			*appPort,
-			*nativeContentAppAuth,
+			*sourceAppAuth,
 			*transformAppHostHeader,
-			*nativeContentAppUri,
+			*sourceAppUri,
 			*transformAppUri,
-			*nativeContentAppHealthUri,
+			*sourceAppAppHealthUri,
 			*transformAppHealthUri,
 			*sourceAppName,
 			*transformAppName,
@@ -84,14 +126,10 @@ func main() {
 		appLogger := NewAppLogger()
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
-
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
-
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
-
 		err := http.ListenAndServe(":"+*appPort, h)
-
 		if err != nil {
 			logrus.Fatalf("Unable to start server: %v", err)
 		}
@@ -103,43 +141,39 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 	r := mux.NewRouter()
 	r.Path("/content-preview/{uuid}").Handler(handlers.MethodHandler{"GET": oldhttphandlers.HTTPMetricsHandler(metricsHandler.registry,
 		oldhttphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
-
 	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
-
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(sc.serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
-
 	return r
 }
 
 type ServiceConfig struct {
-	serviceName               string
-	appPort                   string
-	nativeContentAppAuth      string
-	transformAppHostHeader    string
-	nativeContentAppUri       string
-	transformAppUri           string
-	nativeContentAppHealthUri string
-	transformAppHealthUri     string
-	sourceAppName             string
-	transformAppName          string
-	sourceAppPanicGuide       string
-	transformAppPanicGuide    string
-	graphiteTCPAddress        string
-	graphitePrefix            string
+	serviceName            string
+	appPort                string
+	sourceAppAuth          string
+	transformAppHostHeader string
+	sourceAppAppUri        string
+	transformAppUri        string
+	sourceAppHealthUri     string
+	transformAppHealthUri  string
+	sourceAppName          string
+	transformAppName       string
+	sourceAppPanicGuide    string
+	transformAppPanicGuide string
+	graphiteTCPAddress     string
+	graphitePrefix         string
 }
 
 func (sc ServiceConfig) asMap() map[string]interface{} {
-
 	return map[string]interface{}{
 		"service-name":              sc.serviceName,
 		"service-port":              sc.appPort,
 		"source-app-name":           sc.sourceAppName,
-		"source-app-uri":            sc.nativeContentAppUri,
+		"source-app-uri":            sc.sourceAppAppUri,
 		"transform-app-name":        sc.transformAppName,
 		"transform-app-uri":         sc.transformAppUri,
-		"source-app-health-uri":     sc.nativeContentAppHealthUri,
+		"source-app-health-uri":     sc.sourceAppHealthUri,
 		"transform-app-health-uri":  sc.transformAppHealthUri,
 		"source-app-panic-guide":    sc.sourceAppPanicGuide,
 		"transform-app-panic-guide": sc.transformAppPanicGuide,
