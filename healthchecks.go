@@ -38,12 +38,9 @@ func checkServiceAvailability(serviceName string, healthUri string, auth string,
 	if auth != "" {
 		req.Header.Set("Authorization", "Basic "+auth)
 	}
-
 	if hostHeader != "" {
 		req.Host = hostHeader
 	}
-	l := req.Header.Get("Authorization")
-	globalLogger.Infof("URl=%v Authorization=%s...%s Host=%v", req.URL, l[:14], l[len(l)-4:], req.Host)
 	resp, err := client.Do(req)
 	if err != nil {
 		msg := fmt.Sprintf("%s service is unreachable: %v", serviceName, err)

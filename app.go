@@ -18,10 +18,7 @@ const serviceDescription = "A RESTful API for retrieving and transforming conten
 var timeout = time.Duration(10 * time.Second)
 var client = &http.Client{Timeout: timeout}
 
-var globalLogger *logrus.Logger
-
 func main() {
-
 	app := cli.App("content-preview", serviceDescription)
 	serviceName := app.StringOpt("app-name", "content-preview", "The name of this service")
 	appPort := app.String(cli.StringOpt{
@@ -130,7 +127,6 @@ func main() {
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
-		globalLogger = appLogger.log
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		err := http.ListenAndServe(":"+*appPort, h)
 		if err != nil {
