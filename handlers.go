@@ -41,12 +41,12 @@ func (h ContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.nativeContentAppUri, uuid)
+	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.sourceAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 	h.log.RequestEvent(h.serviceConfig.sourceAppName, requestUrl, transactionId, uuid)
 	req, err := http.NewRequest("GET", requestUrl, nil)
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
-	req.Header.Set("Authorization", "Basic "+h.serviceConfig.nativeContentAppAuth)
+	req.Header.Set("Authorization", "Basic "+h.serviceConfig.sourceAppAuth)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 

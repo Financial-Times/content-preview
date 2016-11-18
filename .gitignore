@@ -1,6 +1,7 @@
-*.exe
+content-preview.exe
 *.log
 *.html
 *coverage.*
 *.iml
 .idea/
+content-preview

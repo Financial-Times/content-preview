@@ -1,8 +1,8 @@
-FROM alpine:3.3
+FROM alpine:3.4
 
 ADD *.go .git /content-preview/
 
-RUN apk --update add git go \
+RUN apk --update add git go ca-certificates \
   && export GOPATH=/gopath \
   && REPO_PATH="github.com/Financial-Times/content-preview" \
   && cd content-preview \
@@ -24,17 +24,4 @@ RUN apk --update add git go \
   && apk del go git \
   && rm -rf $GOPATH /var/cache/apk/*
 
-CMD exec /content-preview-app \
-		--app-port $APP_PORT \
-		--source-app-auth $SOURCE_APP_AUTH \
-		--source-app-uri $SOURCE_APP_URI \
-		--transform-app-uri $TRANSFORM_APP_URI \
-		--transform-app-host-header $TRANSFORM_APP_HOST_HEADER \
-		--source-app-health-uri $SOURCE_APP_HEALTH_URI \
-		--transform-app-health-uri $TRANSFORM_APP_HEALTH_URI \
-		--source-app-name $SOURCE_APP_NAME \
-		--transform-app-name $TRANSFORM_APP_NAME \
-		--graphite-tcp-address $GRAPHITE_TCP_ADDRESS \
-		--graphite-prefix $GRAPHITE_PREFIX \
-		--source-app-panic-guide $SOURCE_APP_PANIC_GUIDE \
-		--transform-app-panic-guide $TRANSFORM_APP_PANIC_GUIDE
+CMD exec /content-preview-app
