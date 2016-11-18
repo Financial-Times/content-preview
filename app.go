@@ -39,7 +39,7 @@ func main() {
 		Desc:   "URI of the Native Content Source Application endpoint",
 		EnvVar: "SOURCE_APP_URI",
 	})
-	sourceAppAppHealthUri := app.String(cli.StringOpt{
+	sourceAppHealthUri := app.String(cli.StringOpt{
 		Name:   "source-app-health-uri",
 		Value:  "http://methode-api-uk-p.svc.ft.com/build-info",
 		Desc:   "URI of the Native Content Source Application health endpoint",
@@ -113,7 +113,7 @@ func main() {
 			*transformAppHostHeader,
 			*sourceAppUri,
 			*transformAppUri,
-			*sourceAppAppHealthUri,
+			*sourceAppHealthUri,
 			*transformAppHealthUri,
 			*sourceAppName,
 			*transformAppName,
