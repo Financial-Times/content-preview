@@ -152,7 +152,7 @@ type ServiceConfig struct {
 	appPort                string
 	sourceAppAuth          string
 	transformAppHostHeader string
-	sourceAppAppUri        string
+	sourceAppUri           string
 	transformAppUri        string
 	sourceAppHealthUri     string
 	transformAppHealthUri  string
@@ -169,7 +169,7 @@ func (sc ServiceConfig) asMap() map[string]interface{} {
 		"service-name":              sc.serviceName,
 		"service-port":              sc.appPort,
 		"source-app-name":           sc.sourceAppName,
-		"source-app-uri":            sc.sourceAppAppUri,
+		"source-app-uri":            sc.sourceAppUri,
 		"transform-app-name":        sc.transformAppName,
 		"transform-app-uri":         sc.transformAppUri,
 		"source-app-health-uri":     sc.sourceAppHealthUri,
