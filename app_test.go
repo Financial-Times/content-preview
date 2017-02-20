@@ -131,7 +131,6 @@ func startContentPreviewService() {
 		"content-preview",
 		"8084",
 		"default",
-		"methode-article-transformer",
 		methodeApiUrl,
 		methodArticleTransformerUrl,
 		nativeContentAppHealthUri,

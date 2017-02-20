@@ -41,7 +41,6 @@ $GOPATH/bin/content-preview \
 --source-app-panic-guide "https://sites.google.com/a/ft.com/dynamic-publishing-team/home/methode-api" \
 --transform-app-name "methode-article-transformer" \
 --transform-app-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/" \
---transform-app-host-header "methode-article-transformer" \
 --transform-app-health-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info" \
 --transform-app-panic-guide "https://sites.google.com/a/ft.com/dynamic-publishing-team/methode-article-transformer-panic-guide" \
 --graphite-tcp-address "graphite.ft.com:2003" \
@@ -62,7 +61,6 @@ With Docker:
 --env "SOURCE_APP_HEALTH_URI=https://methodeapi.glb.ft.com/build-info" \
 --env "SOURCE_APP_PANIC_GUIDE=https://sites.google.com/a/ft.com/dynamic-publishing-team/home/methode-api" \
 --env "TRANSFORM_APP_NAME=methode-article-transformer" \
---env "TRANSFORM_APP_HOST_HEADER=methode-article-transformer" \
 --env "TRANSFORM_APP_URI=http://$HOSTNAME:8080/content-transform/" \
 --env "TRANSFORM_APP_HEALTH_URI=http://$HOSTNAME:8080/__health" \
 --env "TRANSFORM_APP_PANIC_GUIDE=https://sites.google.com/a/ft.com/dynamic-publishing-team/methode-article-transformer-panic-guide" \

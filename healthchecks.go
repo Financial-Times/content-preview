@@ -15,7 +15,7 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.sourceAppName + " Service is reachable. Article Preview Service requests native content from " + sc.sourceAppName + " service.",
 		Checker: func() (string, error) {
-			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
+			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth)
 		},
 	}
 }
@@ -28,20 +28,17 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on " + sc.transformAppName + " service to process content.",
 		Checker: func() (string, error) {
-			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
+			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "")
 		},
 	}
 }
 
-func checkServiceAvailability(serviceName string, healthUri string, auth string, hostHeader string) (string, error) {
+func checkServiceAvailability(serviceName string, healthUri string, auth string) (string, error) {
 	req, err := http.NewRequest("GET", healthUri, nil)
 	if auth != "" {
 		req.Header.Set("Authorization", "Basic "+auth)
 	}
-	if hostHeader != "" {
-		req.Host = hostHeader
-	}
-	resp, err := client.Do(req)
+		resp, err := client.Do(req)
 	if err != nil {
 		msg := fmt.Sprintf("%s service is unreachable: %v", serviceName, err)
 		return msg, errors.New(msg)

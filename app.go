@@ -45,12 +45,6 @@ func main() {
 		Desc:   "URI of the Native Content Source Application health endpoint",
 		EnvVar: "SOURCE_APP_HEALTH_URI",
 	})
-	transformAppHostHeader := app.String(cli.StringOpt{
-		Name:   "transform-app-host-header",
-		Value:  "methode-article-transformer",
-		Desc:   "Transform Application Host Header",
-		EnvVar: "TRANSFORM_APP_HOST_HEADER",
-	})
 	transformAppUri := app.String(cli.StringOpt{
 		Name:   "transform-app-uri",
 		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/",
@@ -110,7 +104,6 @@ func main() {
 			*serviceName,
 			*appPort,
 			*sourceAppAuth,
-			*transformAppHostHeader,
 			*sourceAppUri,
 			*transformAppUri,
 			*sourceAppHealthUri,
@@ -151,7 +144,6 @@ type ServiceConfig struct {
 	serviceName            string
 	appPort                string
 	sourceAppAuth          string
-	transformAppHostHeader string
 	sourceAppUri           string
 	transformAppUri        string
 	sourceAppHealthUri     string
