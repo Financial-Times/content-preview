@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/service-status-go/gtg"
 	"net/http"
 )
 
@@ -33,10 +34,24 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	}
 }
 
+func (sc *ServiceConfig) gtgCheck() gtg.Status {
+	msg, err := checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth)
+	if err != nil {
+		return gtg.Status{GoodToGo:false, Message:msg}
+	}
+
+	msg, err = checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "")
+	if err != nil {
+		return gtg.Status{GoodToGo:false, Message:msg}
+	}
+
+	return gtg.Status{GoodToGo:true}
+}
+
 func checkServiceAvailability(serviceName string, healthUri string, auth string) (string, error) {
 	req, err := http.NewRequest("GET", healthUri, nil)
 	if auth != "" {
-		req.Header.Set("Authorization", "Basic "+auth)
+		req.Header.Set("Authorization", "Basic " + auth)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
