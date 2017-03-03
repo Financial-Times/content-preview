@@ -20,7 +20,12 @@ var client = &http.Client{Timeout: timeout}
 
 func main() {
 	app := cli.App("content-preview", serviceDescription)
-	serviceName := app.StringOpt("app-name", "content-preview", "The name of this service")
+	serviceName := app.String(cli.StringOpt{
+		Name:   "app-name",
+		Value:  "content-preview",
+		Desc:   "The name of this service",
+		EnvVar: "APP_NAME",
+	})
 	appPort := app.String(cli.StringOpt{
 		Name:   "app-port",
 		Value:  "8084",

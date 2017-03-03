@@ -5,6 +5,7 @@ import (
 	"fmt"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"net/http"
+	"strings"
 )
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
@@ -13,7 +14,7 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 		Name:             sc.sourceAppName + " Availabililty Check",
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.sourceAppName + " Service is reachable. Article Preview Service requests native content from " + sc.sourceAppName + " service.",
+		TechnicalSummary: "Checks that " + sc.sourceAppName + " service is reachable. " + formattedServiceName(sc.serviceName) + " requests native content from " + sc.sourceAppName + " service.",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
 		},
@@ -26,7 +27,7 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 		Name:             sc.transformAppName + " Availabililty Check",
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on " + sc.transformAppName + " service to process content.",
+		TechnicalSummary: "Checks that " + sc.transformAppName + " service is reachable. " + formattedServiceName(sc.serviceName) + " relies on " + sc.transformAppName + " service to process content.",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
@@ -51,4 +52,8 @@ func checkServiceAvailability(serviceName string, healthUri string, auth string,
 		return msg, errors.New(msg)
 	}
 	return "Ok", nil
+}
+
+func formattedServiceName(serviceName string) string {
+	return strings.Title(strings.Replace(serviceName, "-", " ", -1))
 }
