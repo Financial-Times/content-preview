@@ -10,7 +10,7 @@ import (
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 	return fthealth.Check{
-		BusinessImpact:   "Editorial users won't be able to preview articles",
+		BusinessImpact:   sc.businessImpact,
 		Name:             sc.sourceAppName + " Availabililty Check",
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
@@ -23,7 +23,7 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 
 func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	return fthealth.Check{
-		BusinessImpact:   "Editorial users won't be able to preview articles",
+		BusinessImpact:   sc.businessImpact,
 		Name:             sc.transformAppName + " Availabililty Check",
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,

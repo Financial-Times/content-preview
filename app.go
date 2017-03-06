@@ -92,6 +92,12 @@ func main() {
 		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for Methode Article Mapper.",
 		EnvVar: "TRANSFORM_APP_PANIC_GUIDE",
 	})
+	businessImpact := app.String(cli.StringOpt{
+		Name:   "business-impact",
+		Value:  "Editorial users won't be able to preview articles",
+		Desc:   "Describe the business impact the dependent services would produce if one is broken.",
+		EnvVar: "BUSINESS_IMPACT",
+	})
 	graphiteTCPAddress := app.String(cli.StringOpt{
 		Name:   "graphite-tcp-address",
 		Value:  "",
@@ -124,6 +130,7 @@ func main() {
 			*transformAppName,
 			*sourceAppPanicGuide,
 			*transformAppPanicGuide,
+			*businessImpact,
 			*graphiteTCPAddress,
 			*graphitePrefix,
 		}
@@ -165,6 +172,7 @@ type ServiceConfig struct {
 	transformAppName       string
 	sourceAppPanicGuide    string
 	transformAppPanicGuide string
+	businessImpact         string
 	graphiteTCPAddress     string
 	graphitePrefix         string
 }
@@ -181,6 +189,7 @@ func (sc ServiceConfig) asMap() map[string]interface{} {
 		"transform-app-health-uri":  sc.transformAppHealthUri,
 		"source-app-panic-guide":    sc.sourceAppPanicGuide,
 		"transform-app-panic-guide": sc.transformAppPanicGuide,
+		"business-impact":           sc.businessImpact,
 		"graphite-tcp-address":      sc.graphiteTCPAddress,
 		"graphite-prefix":           sc.graphitePrefix,
 	}
