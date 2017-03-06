@@ -58,7 +58,7 @@ func main() {
 	})
 	transformAppUri := app.String(cli.StringOpt{
 		Name:   "transform-app-uri",
-		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/",
+		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/map/",
 		Desc:   "URI of the Transform Application endpoint",
 		EnvVar: "TRANSFORM_APP_URI",
 	})
