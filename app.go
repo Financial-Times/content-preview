@@ -82,14 +82,14 @@ func main() {
 	})
 	sourceAppPanicGuide := app.String(cli.StringOpt{
 		Name:   "source-app-panic-guide",
-		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
-		Desc:   "Native Content Source application panic guide url for healthcheck. Default panic guide is for content preview.",
+		Value:  "https://dewey.ft.com/up-mapi.html",
+		Desc:   "Native Content Source application panic guide url for healthcheck. Default panic guide is for Methode API.",
 		EnvVar: "SOURCE_APP_PANIC_GUIDE",
 	})
 	transformAppPanicGuide := app.String(cli.StringOpt{
 		Name:   "transform-app-panic-guide",
-		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
-		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for content preview.",
+		Value:  "https://dewey.ft.com/up-mam.html",
+		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for Methode Article Mapper.",
 		EnvVar: "TRANSFORM_APP_PANIC_GUIDE",
 	})
 	graphiteTCPAddress := app.String(cli.StringOpt{
