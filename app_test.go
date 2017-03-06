@@ -142,6 +142,7 @@ func startContentPreviewService() {
 		"",
 		"",
 		"",
+		"",
 	}
 
 	appLogger := NewAppLogger()
