@@ -138,9 +138,9 @@ func startContentPreviewService() {
 		transformAppHealthUrl,
 		"Native Content Service",
 		"Native Content Transformer Service",
-		"",
-		"",
-		"",
+		"panic guide",
+		"panic guide",
+		"business impact",
 		"",
 		"",
 	}
