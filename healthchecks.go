@@ -5,16 +5,15 @@ import (
 	"fmt"
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	"net/http"
-	"strings"
 )
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   sc.businessImpact,
-		Name:             formattedServiceName(sc.sourceAppName) + " Availabililty Check",
+		Name:             sc.sourceAppName,
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + formattedServiceName(sc.sourceAppName) + " service is reachable. " + formattedServiceName(sc.serviceName) + " requests native content from " + formattedServiceName(sc.sourceAppName) + " service.",
+		TechnicalSummary: "Checks that " + sc.sourceAppName + " is reachable. " + sc.serviceName + " requests native content from " + sc.sourceAppName,
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
 		},
@@ -24,10 +23,10 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   sc.businessImpact,
-		Name:             formattedServiceName(sc.transformAppName) + " Availabililty Check",
+		Name:             sc.transformAppName,
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + formattedServiceName(sc.transformAppName) + " service is reachable. " + formattedServiceName(sc.serviceName) + " relies on " + formattedServiceName(sc.transformAppName) + " service to process content.",
+		TechnicalSummary: "Checks that " + sc.transformAppName + " is reachable. " + sc.serviceName + " relies on " + sc.transformAppName + " to process content",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
@@ -52,8 +51,4 @@ func checkServiceAvailability(serviceName string, healthUri string, auth string,
 		return msg, errors.New(msg)
 	}
 	return "Ok", nil
-}
-
-func formattedServiceName(serviceName string) string {
-	return strings.Title(strings.Replace(serviceName, "-", " ", -1))
 }
