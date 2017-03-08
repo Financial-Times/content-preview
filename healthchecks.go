@@ -11,10 +11,10 @@ import (
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   sc.businessImpact,
-		Name:             sc.sourceAppName + " Availabililty Check",
+		Name:             formattedServiceName(sc.sourceAppName) + " Availabililty Check",
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.sourceAppName + " service is reachable. " + formattedServiceName(sc.serviceName) + " requests native content from " + sc.sourceAppName + " service.",
+		TechnicalSummary: "Checks that " + formattedServiceName(sc.sourceAppName) + " service is reachable. " + formattedServiceName(sc.serviceName) + " requests native content from " + formattedServiceName(sc.sourceAppName) + " service.",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
 		},
@@ -24,10 +24,10 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	return fthealth.Check{
 		BusinessImpact:   sc.businessImpact,
-		Name:             sc.transformAppName + " Availabililty Check",
+		Name:             formattedServiceName(sc.transformAppName) + " Availabililty Check",
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.transformAppName + " service is reachable. " + formattedServiceName(sc.serviceName) + " relies on " + sc.transformAppName + " service to process content.",
+		TechnicalSummary: "Checks that " + formattedServiceName(sc.transformAppName) + " service is reachable. " + formattedServiceName(sc.serviceName) + " relies on " + formattedServiceName(sc.transformAppName) + " service to process content.",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
