@@ -68,10 +68,10 @@ func happyHandler(w http.ResponseWriter, r *http.Request) {
 func startMethodeArticleTransformerMock(status string) {
 	r := mux.NewRouter()
 	if status == "happy" {
-		r.Path("/content-transform/{uuid}").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
+		r.Path("/map/{uuid}").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(happyHandler)})
 	} else {
-		r.Path("/content-transform/{uuid}").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(unhappyHandler)})
+		r.Path("/map/{uuid}").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(unhappyHandler)})
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(unhappyHandler)})
 	}
 
@@ -124,7 +124,7 @@ func startContentPreviewService() {
 
 	methodeApiUrl := methodeApiMock.URL + "/eom-file/"
 	nativeContentAppHealthUri := methodeApiMock.URL + "/build-info"
-	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/content-transform/"
+	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/map/"
 	transformAppHealthUrl := methodeArticleTransformerMock.URL + "/build-info"
 
 	sc := ServiceConfig{
@@ -138,8 +138,9 @@ func startContentPreviewService() {
 		transformAppHealthUrl,
 		"Native Content Service",
 		"Native Content Transformer Service",
-		"",
-		"",
+		"panic guide",
+		"panic guide",
+		"business impact",
 		"",
 		"",
 	}
