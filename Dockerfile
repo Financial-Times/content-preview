@@ -1,6 +1,7 @@
 FROM alpine:3.4
 
 ADD *.go .git /content-preview/
+ADD test-resources /content-preview/test-resources
 
 RUN apk --update add git go ca-certificates \
   && export GOPATH=/gopath \

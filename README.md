@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/Financial-Times/content-preview.svg?style=svg)](https://circleci.com/gh/Financial-Times/content-preview) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/content-preview/badge.svg?branch=master)](https://coveralls.io/github/Financial-Times/content-preview?branch=master)
+
 # Content Preview Service (content-preview)
 
 __Content Preview service serves published and unpublished content from Methode CMS (and in the future from Wordpress) 
