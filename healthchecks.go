@@ -9,11 +9,11 @@ import (
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 	return fthealth.Check{
-		BusinessImpact:   "Editorial users won't be able to preview articles",
-		Name:             sc.sourceAppName + " Availabililty Check",
+		BusinessImpact:   sc.businessImpact,
+		Name:             sc.sourceAppName,
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.sourceAppName + " Service is reachable. Article Preview Service requests native content from " + sc.sourceAppName + " service.",
+		TechnicalSummary: "Checks that " + sc.sourceAppName + " is reachable. " + sc.serviceName + " requests native content from " + sc.sourceAppName,
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
 		},
@@ -22,11 +22,11 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 
 func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 	return fthealth.Check{
-		BusinessImpact:   "Editorial users won't be able to preview articles",
-		Name:             sc.transformAppName + " Availabililty Check",
+		BusinessImpact:   sc.businessImpact,
+		Name:             sc.transformAppName,
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.transformAppName + " Service is reachable. Article Preview Service relies on " + sc.transformAppName + " service to process content.",
+		TechnicalSummary: "Checks that " + sc.transformAppName + " is reachable. " + sc.serviceName + " relies on " + sc.transformAppName + " to process content",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
