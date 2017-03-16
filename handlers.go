@@ -63,7 +63,6 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	h.log.RequestEvent(h.serviceConfig.transformAppName, requestUrl, transactionId, uuid)
 
 	req, err := http.NewRequest("POST", requestUrl, nativeContentSourceAppResponse.Body)
-	req.Host = h.serviceConfig.transformAppHostHeader
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
