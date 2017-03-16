@@ -1,17 +1,18 @@
 package main
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	oldhttphandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
-	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Financial-Times/service-status-go/gtg"
+	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"net/http"
-	"os"
-	"time"
 )
 
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
@@ -141,7 +142,7 @@ func main() {
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
-		err := http.ListenAndServe(":" + *appPort, h)
+		err := http.ListenAndServe(":"+*appPort, h)
 		if err != nil {
 			logrus.Fatalf("Unable to start server: %v", err)
 		}
