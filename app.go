@@ -1,17 +1,18 @@
 package main
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	oldhttphandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
-	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Financial-Times/service-status-go/gtg"
+	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"net/http"
-	"os"
-	"time"
 )
 
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
@@ -21,7 +22,12 @@ var client = &http.Client{Timeout: timeout}
 
 func main() {
 	app := cli.App("content-preview", serviceDescription)
-	serviceName := app.StringOpt("app-name", "content-preview", "The name of this service")
+	serviceName := app.String(cli.StringOpt{
+		Name:   "app-name",
+		Value:  "content-preview",
+		Desc:   "The name of this service",
+		EnvVar: "APP_NAME",
+	})
 	appPort := app.String(cli.StringOpt{
 		Name:   "app-port",
 		Value:  "8084",
@@ -48,7 +54,7 @@ func main() {
 	})
 	transformAppUri := app.String(cli.StringOpt{
 		Name:   "transform-app-uri",
-		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/",
+		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/map/",
 		Desc:   "URI of the Transform Application endpoint",
 		EnvVar: "TRANSFORM_APP_URI",
 	})
@@ -72,15 +78,21 @@ func main() {
 	})
 	sourceAppPanicGuide := app.String(cli.StringOpt{
 		Name:   "source-app-panic-guide",
-		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
-		Desc:   "Native Content Source application panic guide url for healthcheck. Default panic guide is for content preview.",
+		Value:  "https://dewey.ft.com/up-mapi.html",
+		Desc:   "Native Content Source application panic guide url for healthcheck. Default panic guide is for Methode API.",
 		EnvVar: "SOURCE_APP_PANIC_GUIDE",
 	})
 	transformAppPanicGuide := app.String(cli.StringOpt{
 		Name:   "transform-app-panic-guide",
-		Value:  "https://sites.google.com/a/ft.com/dynamic-publishing-team/content-preview-panic-guide",
-		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for content preview.",
+		Value:  "https://dewey.ft.com/up-mam.html",
+		Desc:   "Transform application panic guide url for healthcheck. Default panic guide is for Methode Article Mapper.",
 		EnvVar: "TRANSFORM_APP_PANIC_GUIDE",
+	})
+	businessImpact := app.String(cli.StringOpt{
+		Name:   "business-impact",
+		Value:  "Editorial users won't be able to preview articles",
+		Desc:   "Describe the business impact the dependent services would produce if one is broken.",
+		EnvVar: "BUSINESS_IMPACT",
 	})
 	graphiteTCPAddress := app.String(cli.StringOpt{
 		Name:   "graphite-tcp-address",
@@ -113,6 +125,7 @@ func main() {
 			*transformAppName,
 			*sourceAppPanicGuide,
 			*transformAppPanicGuide,
+			*businessImpact,
 			*graphiteTCPAddress,
 			*graphitePrefix,
 		}
@@ -122,7 +135,7 @@ func main() {
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
 		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
-		err := http.ListenAndServe(":" + *appPort, h)
+		err := http.ListenAndServe(":"+*appPort, h)
 		if err != nil {
 			logrus.Fatalf("Unable to start server: %v", err)
 		}
@@ -155,6 +168,7 @@ type ServiceConfig struct {
 	transformAppName       string
 	sourceAppPanicGuide    string
 	transformAppPanicGuide string
+	businessImpact         string
 	graphiteTCPAddress     string
 	graphitePrefix         string
 }
@@ -171,6 +185,7 @@ func (sc ServiceConfig) asMap() map[string]interface{} {
 		"transform-app-health-uri":  sc.transformAppHealthUri,
 		"source-app-panic-guide":    sc.sourceAppPanicGuide,
 		"transform-app-panic-guide": sc.transformAppPanicGuide,
+		"business-impact":           sc.businessImpact,
 		"graphite-tcp-address":      sc.graphiteTCPAddress,
 		"graphite-prefix":           sc.graphitePrefix,
 	}

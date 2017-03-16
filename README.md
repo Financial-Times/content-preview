@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/Financial-Times/content-preview.svg?style=shield)](https://circleci.com/gh/Financial-Times/content-preview) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/content-preview/badge.svg)](https://coveralls.io/github/Financial-Times/content-preview)
+
 # Content Preview Service (content-preview)
 
 __Content Preview service serves published and unpublished content from Methode CMS (and in the future from Wordpress) 
@@ -40,7 +42,7 @@ $GOPATH/bin/content-preview \
 --source-app-health-uri "http://methode-api-uk-p.svc.ft.com/build-info" \
 --source-app-panic-guide "https://sites.google.com/a/ft.com/dynamic-publishing-team/home/methode-api" \
 --transform-app-name "methode-article-transformer" \
---transform-app-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/content-transform/" \
+--transform-app-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/map/" \
 --transform-app-health-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info" \
 --transform-app-panic-guide "https://sites.google.com/a/ft.com/dynamic-publishing-team/methode-article-transformer-panic-guide" \
 --graphite-tcp-address "graphite.ft.com:2003" \
@@ -61,7 +63,7 @@ With Docker:
 --env "SOURCE_APP_HEALTH_URI=https://methodeapi.glb.ft.com/build-info" \
 --env "SOURCE_APP_PANIC_GUIDE=https://sites.google.com/a/ft.com/dynamic-publishing-team/home/methode-api" \
 --env "TRANSFORM_APP_NAME=methode-article-transformer" \
---env "TRANSFORM_APP_URI=http://$HOSTNAME:8080/content-transform/" \
+--env "TRANSFORM_APP_URI=http://$HOSTNAME:8080/map/" \
 --env "TRANSFORM_APP_HEALTH_URI=http://$HOSTNAME:8080/__health" \
 --env "TRANSFORM_APP_PANIC_GUIDE=https://sites.google.com/a/ft.com/dynamic-publishing-team/methode-article-transformer-panic-guide" \
 --env "GRAPHITE_TCP_ADDRESS=graphite.ft.com:2003" \

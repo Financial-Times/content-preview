@@ -3,21 +3,27 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
 )
 
 var contentPreviewService *httptest.Server
 var methodeApiMock *httptest.Server
 var methodeArticleTransformerMock *httptest.Server
+
+const sourceAppName = "Native Content Service"
+const transformAppName = "Native Content Transformer Service"
 
 func startMethodeApiMock(status string) {
 	r := mux.NewRouter()
@@ -68,10 +74,10 @@ func happyHandler(w http.ResponseWriter, r *http.Request) {
 func startMethodeArticleTransformerMock(status string) {
 	r := mux.NewRouter()
 	if status == "happy" {
-		r.Path("/content-transform/{uuid}").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
+		r.Path("/map").Queries("preview", "true").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(methodeArticleTransformerHandlerMock)})
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(happyHandler)})
 	} else {
-		r.Path("/content-transform/{uuid}").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(unhappyHandler)})
+		r.Path("/map").Handler(handlers.MethodHandler{"POST": http.HandlerFunc(unhappyHandler)})
 		r.Path("/build-info").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(unhappyHandler)})
 	}
 
@@ -80,9 +86,16 @@ func startMethodeArticleTransformerMock(status string) {
 
 func methodeArticleTransformerHandlerMock(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
+	decoder := json.NewDecoder(r.Body)
+	type shortEomFile struct {
+		Uuid string `json:"uuid"`
+	}
+	var shortF shortEomFile
+	err := decoder.Decode(&shortF)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	defer r.Body.Close()
 
 	if r.Header.Get(tid.TransactionIDHeader) != "" && isEqualToMethodeApiOutput(r.Body) {
 		w.Header().Set(tid.TransactionIDHeader, r.Header.Get(tid.TransactionIDHeader))
@@ -90,7 +103,7 @@ func methodeArticleTransformerHandlerMock(w http.ResponseWriter, r *http.Request
 		w.Header().Set(tid.TransactionIDHeader, "tid_w58gqvazux")
 	}
 
-	if uuid == "d7db73ec-cf53-11e5-92a1-c5e23ef99c77" {
+	if shortF.Uuid == "d7db73ec-cf53-11e5-92a1-c5e23ef99c77" {
 		file, err := os.Open("test-resources/methode-article-transformer-output.json")
 		if err != nil {
 			return
@@ -124,7 +137,7 @@ func startContentPreviewService() {
 
 	methodeApiUrl := methodeApiMock.URL + "/eom-file/"
 	nativeContentAppHealthUri := methodeApiMock.URL + "/build-info"
-	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/content-transform/"
+	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/map"
 	transformAppHealthUrl := methodeArticleTransformerMock.URL + "/build-info"
 
 	sc := ServiceConfig{
@@ -135,10 +148,11 @@ func startContentPreviewService() {
 		methodArticleTransformerUrl,
 		nativeContentAppHealthUri,
 		transformAppHealthUrl,
-		"Native Content Service",
-		"Native Content Transformer Service",
-		"",
-		"",
+		sourceAppName,
+		transformAppName,
+		"panic guide",
+		"panic guide",
+		"business impact",
 		"",
 		"",
 	}
@@ -152,7 +166,7 @@ func startContentPreviewService() {
 	contentPreviewService = httptest.NewServer(h)
 }
 
-func TestShouldReturn200AndTrasformerOutput(t *testing.T) {
+func TestShouldReturn200AndTransformerOutput(t *testing.T) {
 	startMethodeApiMock("happy")
 	startMethodeArticleTransformerMock("happy")
 	startContentPreviewService()
@@ -336,4 +350,72 @@ func TestShouldBeUnhealthyWhenTransformerIsNotHappy(t *testing.T) {
 		}
 	}
 
+}
+
+func TestGtgShouldReturn503WhenMethodeApiIsNotHappy(t *testing.T) {
+	startMethodeApiMock("unhappy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/__gtg")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode, "Response status code should be 503")
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		assert.Fail(t, "No error should be returned when reading the response body")
+	}
+	expectedRespBody := fmt.Sprintf("%s service is not responding with OK. status=%d", sourceAppName, http.StatusInternalServerError)
+	actualRespBody := string(body)
+	assert.Equal(t, expectedRespBody, actualRespBody)
+}
+
+func TestGtgShouldReturn503WhenTransformerIsNotHappy(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("unhappy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/__gtg")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode, "Response status code should be 503")
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		assert.Fail(t, "No error should be returned when reading the response body")
+	}
+	expectedRespBody := fmt.Sprintf("%s service is not responding with OK. status=%d", transformAppName, http.StatusInternalServerError)
+	actualRespBody := string(body)
+	assert.Equal(t, expectedRespBody, actualRespBody)
+}
+
+func TestGtgShouldReturn200(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/__gtg")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Response status code should be 200")
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		assert.Fail(t, "No error should be returned when reading the response body")
+	}
+	actualRespBody := string(body)
+	assert.Equal(t, "OK", actualRespBody)
 }

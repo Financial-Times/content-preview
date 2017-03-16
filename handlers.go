@@ -53,9 +53,9 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	return h.handleResponse(req, resp, err, w, uuid)
 }
 
-func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (bool, *http.Response) {
 	uuid := ctx.Value(uuidKey).(string)
-	requestUrl := fmt.Sprintf("%s%s?preview=true", h.serviceConfig.transformAppUri, uuid)
+	requestUrl := fmt.Sprintf("%s?preview=true", h.serviceConfig.transformAppUri)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
 
 	//TODO we need to assert that resp.Header.Get(tid.TransactionIDHeader) ==  transactionId
@@ -65,13 +65,12 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	req, err := http.NewRequest("POST", requestUrl, nativeContentSourceAppResponse.Body)
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err = client.Do(req)
+	resp, err := client.Do(req)
 
 	return h.handleResponse(req, resp, err, w, uuid)
-
 }
 
-func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid string) (ok bool, resp *http.Response) {
+func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid string) (bool, *http.Response) {
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err != nil {
 		h.handleError(w, err, h.serviceConfig.transformAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
