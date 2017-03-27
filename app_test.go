@@ -128,7 +128,6 @@ func stopServices() {
 }
 
 func startContentPreviewService() {
-
 	methodeApiUrl := methodeApiMock.URL + "/eom-file/"
 	nativeContentAppHealthUri := methodeApiMock.URL + "/build-info"
 	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/map"

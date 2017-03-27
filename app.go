@@ -1,7 +1,7 @@
 package main
 
 import (
-	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	oldhttphandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
@@ -20,9 +20,15 @@ var client = &http.Client{Timeout: timeout}
 
 func main() {
 	app := cli.App("content-preview", serviceDescription)
-	serviceName := app.String(cli.StringOpt{
-		Name:   "app-name",
+	systemCode := app.String(cli.StringOpt{
+		Name:   "app-system-code",
 		Value:  "content-preview",
+		Desc:   "The system code of this service",
+		EnvVar: "APP_SYSTEM_CODE",
+	})
+	appName := app.String(cli.StringOpt{
+		Name:   "app-name",
+		Value:  "Content Preview",
 		Desc:   "The name of this service",
 		EnvVar: "APP_NAME",
 	})
@@ -118,7 +124,8 @@ func main() {
 	})
 	app.Action = func() {
 		sc := ServiceConfig{
-			*serviceName,
+			*systemCode,
+			*appName,
 			*appPort,
 			*sourceAppAuth,
 			*transformAppHostHeader,
@@ -138,7 +145,7 @@ func main() {
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
-		appLogger.ServiceStartedEvent(*serviceName, sc.asMap())
+		appLogger.ServiceStartedEvent(*systemCode, sc.asMap())
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		err := http.ListenAndServe(":"+*appPort, h)
 		if err != nil {
@@ -154,13 +161,17 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 		oldhttphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
 	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
-	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(sc.serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
+
+	hc := fthealth.HealthCheck{SystemCode: sc.systemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck, sc.transformerServiceCheck}}
+	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(&hc))})
+
 	return r
 }
 
 type ServiceConfig struct {
-	serviceName            string
+	systemCode             string
+	appName                string
 	appPort                string
 	sourceAppAuth          string
 	transformAppHostHeader string
@@ -179,8 +190,9 @@ type ServiceConfig struct {
 
 func (sc ServiceConfig) asMap() map[string]interface{} {
 	return map[string]interface{}{
-		"service-name":              sc.serviceName,
-		"service-port":              sc.appPort,
+		"app-system-code":           sc.systemCode,
+		"app-name":                  sc.appName,
+		"app-port":                  sc.appPort,
 		"source-app-name":           sc.sourceAppName,
 		"source-app-uri":            sc.sourceAppUri,
 		"transform-app-name":        sc.transformAppName,
