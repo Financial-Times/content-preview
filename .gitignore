@@ -4,4 +4,4 @@
 *coverage.*
 *.iml
 .idea/
-vendor/**
+vendor/*/**
