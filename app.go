@@ -163,7 +163,7 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
 	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
 
-	hc := fthealth.HealthCheck{SystemCode: sc.systemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck, sc.transformerServiceCheck}}
+	hc := fthealth.HealthCheck{SystemCode: sc.systemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck(), sc.transformerServiceCheck()}}
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(&hc))})
 
 	return r
