@@ -20,7 +20,7 @@ var client = &http.Client{Timeout: timeout}
 
 func main() {
 	app := cli.App("content-preview", serviceDescription)
-	systemCode := app.String(cli.StringOpt{
+	appSystemCode := app.String(cli.StringOpt{
 		Name:   "app-system-code",
 		Value:  "content-preview",
 		Desc:   "The system code of this service",
@@ -124,7 +124,7 @@ func main() {
 	})
 	app.Action = func() {
 		sc := ServiceConfig{
-			*systemCode,
+			*appSystemCode,
 			*appName,
 			*appPort,
 			*sourceAppAuth,
@@ -145,7 +145,7 @@ func main() {
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
-		appLogger.ServiceStartedEvent(*systemCode, sc.asMap())
+		appLogger.ServiceStartedEvent(*appSystemCode, sc.asMap())
 		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		err := http.ListenAndServe(":"+*appPort, h)
 		if err != nil {
@@ -163,14 +163,14 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
 	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
 
-	hc := fthealth.HealthCheck{SystemCode: sc.systemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck(), sc.transformerServiceCheck()}}
+	hc := fthealth.HealthCheck{SystemCode: sc.appSystemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck(), sc.transformerServiceCheck()}}
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(&hc))})
 
 	return r
 }
 
 type ServiceConfig struct {
-	systemCode             string
+	appSystemCode             string
 	appName                string
 	appPort                string
 	sourceAppAuth          string
@@ -190,7 +190,7 @@ type ServiceConfig struct {
 
 func (sc ServiceConfig) asMap() map[string]interface{} {
 	return map[string]interface{}{
-		"app-system-code":           sc.systemCode,
+		"app-system-code":           sc.appSystemCode,
 		"app-name":                  sc.appName,
 		"app-port":                  sc.appPort,
 		"source-app-name":           sc.sourceAppName,
