@@ -1,16 +1,18 @@
 package main
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	fthealth "github.com/Financial-Times/go-fthealth/v1a"
 	oldhttphandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/service-status-go/gtg"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"net/http"
-	"os"
-	"time"
 )
 
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
@@ -154,6 +156,8 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 		oldhttphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), contentHandler))})
 	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
+	gtgHandler := httphandlers.NewGoodToGoHandler(gtg.StatusChecker(sc.gtgCheck))
+	r.Path(httphandlers.GTGPath).HandlerFunc(gtgHandler)
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(sc.serviceName, serviceDescription, sc.nativeContentSourceCheck(), sc.transformerServiceCheck()))})
 	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
 	return r
