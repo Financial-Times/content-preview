@@ -175,7 +175,7 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 }
 
 type ServiceConfig struct {
-	appSystemCode             string
+	appSystemCode          string
 	appName                string
 	appPort                string
 	sourceAppAuth          string
