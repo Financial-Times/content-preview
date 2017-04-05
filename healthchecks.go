@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"net/http"
+
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/service-status-go/gtg"
 )
 
 func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
@@ -31,6 +33,20 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
 	}
+}
+
+func (sc *ServiceConfig) gtgCheck() gtg.Status {
+	msg, err := checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
+	if err != nil {
+		return gtg.Status{GoodToGo: false, Message: msg}
+	}
+
+	msg, err = checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
+	if err != nil {
+		return gtg.Status{GoodToGo: false, Message: msg}
+	}
+
+	return gtg.Status{GoodToGo: true}
 }
 
 func checkServiceAvailability(serviceName string, healthUri string, auth string, hostHeader string) (string, error) {
