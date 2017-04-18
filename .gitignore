@@ -1,7 +1,7 @@
-content-preview.exe
+*.exe
 *.log
 *.html
 *coverage.*
 *.iml
 .idea/
-content-preview
+vendor/*/**

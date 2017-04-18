@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -134,7 +134,6 @@ func stopServices() {
 }
 
 func startContentPreviewService() {
-
 	methodeApiUrl := methodeApiMock.URL + "/eom-file/"
 	nativeContentAppHealthUri := methodeApiMock.URL + "/build-info"
 	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/map"
@@ -142,6 +141,7 @@ func startContentPreviewService() {
 
 	sc := ServiceConfig{
 		"content-preview",
+		"Content Preview",
 		"8084",
 		"default",
 		"methode-article-transformer",

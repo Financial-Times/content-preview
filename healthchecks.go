@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	fthealth "github.com/Financial-Times/go-fthealth/v1a"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
 )
 
@@ -15,7 +15,7 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 		Name:             sc.sourceAppName,
 		PanicGuide:       sc.sourceAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.sourceAppName + " is reachable. " + sc.serviceName + " requests native content from " + sc.sourceAppName,
+		TechnicalSummary: "Checks that " + sc.sourceAppName + " is reachable. " + sc.appName + " requests native content from " + sc.sourceAppName,
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
 		},
@@ -28,7 +28,7 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 		Name:             sc.transformAppName,
 		PanicGuide:       sc.transformAppPanicGuide,
 		Severity:         1,
-		TechnicalSummary: "Checks that " + sc.transformAppName + " is reachable. " + sc.serviceName + " relies on " + sc.transformAppName + " to process content",
+		TechnicalSummary: "Checks that " + sc.transformAppName + " is reachable. " + sc.appName + " relies on " + sc.transformAppName + " to process content",
 		Checker: func() (string, error) {
 			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
 		},
