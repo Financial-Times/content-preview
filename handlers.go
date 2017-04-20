@@ -84,6 +84,9 @@ func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response
 	case http.StatusNotFound:
 		h.handleNotFound(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
 		return false, nil
+	case 422:
+		h.handleUnprocessableEntity(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
+		return false, nil
 	default:
 		h.handleFailedRequest(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
 		return false, nil
@@ -104,6 +107,12 @@ func (h ContentHandler) handleFailedRequest(w http.ResponseWriter, resp *http.Re
 
 func (h ContentHandler) handleNotFound(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
 	w.WriteHeader(http.StatusNotFound)
+	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
+	h.metrics.recordRequestFailedEvent()
+}
+
+func (h ContentHandler) handleUnprocessableEntity(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
+	w.WriteHeader(422)
 	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
 	h.metrics.recordRequestFailedEvent()
 }
