@@ -4,4 +4,4 @@ content-preview.exe
 *coverage.*
 *.iml
 .idea/
-content-preview
+/content-preview
