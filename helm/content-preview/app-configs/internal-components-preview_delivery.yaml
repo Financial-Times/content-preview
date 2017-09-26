@@ -1,0 +1,9 @@
+# Values used for the deployed application.
+service:
+  name: internal-components-preview
+env:
+  BUSINESS_IMPACT: "Editorial users won't be able to preview internal components on articles"
+  TRANSFORM_APP_URI: http://methode-article-internal-components-mapper:8080/map
+  TRANSFORM_APP_HEALTH_URI: http://methode-article-internal-components-mapper:8080/__health
+  TRANSFORM_APP_NAME: methode-article-internal-components-mapper
+  TRANSFORM_APP_PANIC_GUIDE: https://dewey.ft.com/up-maicm.html

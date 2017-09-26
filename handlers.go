@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
-	"io"
-	"net/http"
 )
 
 const uuidKey = "uuid"
@@ -43,11 +44,15 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.sourceAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
+
 	h.log.RequestEvent(h.serviceConfig.sourceAppName, requestUrl, transactionId, uuid)
+
 	req, err := http.NewRequest("GET", requestUrl, nil)
+
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Authorization", "Basic "+h.serviceConfig.sourceAppAuth)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err = client.Do(req)
 
 	return h.handleResponse(req, resp, err, w, uuid)
@@ -63,9 +68,9 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	h.log.RequestEvent(h.serviceConfig.transformAppName, requestUrl, transactionId, uuid)
 
 	req, err := http.NewRequest("POST", requestUrl, nativeContentSourceAppResponse.Body)
-	req.Host = h.serviceConfig.transformAppHostHeader
 	req.Header.Set(tid.TransactionIDHeader, transactionId)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err := client.Do(req)
 
 	return h.handleResponse(req, resp, err, w, uuid)

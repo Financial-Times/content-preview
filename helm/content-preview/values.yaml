@@ -1,0 +1,20 @@
+# Default values for content-preview.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+service:
+  name: "" # The name of the service, should be defined in the specific app-configs folder.
+  hasHealthcheck: "true"
+replicaCount: 2
+image:
+  repository: coco/content-preview
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    memory: 256Mi
+env:
+  BUSINESS_IMPACT: "" 
+  TRANSFORM_APP_URI: "" 
+  TRANSFORM_APP_HEALTH_URI: ""
+  TRANSFORM_APP_NAME:  ""
+  TRANSFORM_APP_PANIC_GUIDE: ""
+

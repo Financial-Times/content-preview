@@ -17,7 +17,7 @@ func (sc *ServiceConfig) nativeContentSourceCheck() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.sourceAppName + " is reachable. " + sc.appName + " requests native content from " + sc.sourceAppName,
 		Checker: func() (string, error) {
-			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
+			return checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth)
 		},
 	}
 }
@@ -30,18 +30,18 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 		Severity:         1,
 		TechnicalSummary: "Checks that " + sc.transformAppName + " is reachable. " + sc.appName + " relies on " + sc.transformAppName + " to process content",
 		Checker: func() (string, error) {
-			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
+			return checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "")
 		},
 	}
 }
 
 func (sc *ServiceConfig) gtgCheck() gtg.Status {
-	msg, err := checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth, "")
+	msg, err := checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth)
 	if err != nil {
 		return gtg.Status{GoodToGo: false, Message: msg}
 	}
 
-	msg, err = checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "", sc.transformAppHostHeader)
+	msg, err = checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "")
 	if err != nil {
 		return gtg.Status{GoodToGo: false, Message: msg}
 	}
@@ -49,22 +49,22 @@ func (sc *ServiceConfig) gtgCheck() gtg.Status {
 	return gtg.Status{GoodToGo: true}
 }
 
-func checkServiceAvailability(serviceName string, healthUri string, auth string, hostHeader string) (string, error) {
+func checkServiceAvailability(serviceName string, healthUri string, auth string) (string, error) {
 	req, err := http.NewRequest("GET", healthUri, nil)
 	if auth != "" {
 		req.Header.Set("Authorization", "Basic "+auth)
 	}
-	if hostHeader != "" {
-		req.Host = hostHeader
-	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		msg := fmt.Sprintf("%s service is unreachable: %v", serviceName, err)
 		return msg, errors.New(msg)
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("%s service is not responding with OK. status=%d", serviceName, resp.StatusCode)
 		return msg, errors.New(msg)
 	}
+
 	return "Ok", nil
 }

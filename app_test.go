@@ -140,22 +140,21 @@ func startContentPreviewService() {
 	transformAppHealthUrl := methodeArticleTransformerMock.URL + "/build-info"
 
 	sc := ServiceConfig{
-		"content-preview",
-		"Content Preview",
-		"8084",
-		"default",
-		"methode-article-transformer",
-		methodeApiUrl,
-		methodArticleTransformerUrl,
-		nativeContentAppHealthUri,
-		transformAppHealthUrl,
-		sourceAppName,
-		transformAppName,
-		"panic guide",
-		"panic guide",
-		"business impact",
-		"",
-		"",
+		appSystemCode:          "content-preview",
+		appName:                "Content Preview",
+		appPort:                "8084",
+		sourceAppName:          sourceAppName,
+		sourceAppAuth:          "default",
+		sourceAppUri:           methodeApiUrl,
+		sourceAppHealthUri:     nativeContentAppHealthUri,
+		sourceAppPanicGuide:    "panic guide",
+		transformAppName:       transformAppName,
+		transformAppUri:        methodArticleTransformerUrl,
+		transformAppHealthUri:  transformAppHealthUrl,
+		transformAppPanicGuide: "panic guide",
+		businessImpact:         "business impact",
+		graphiteTCPAddress:     "",
+		graphitePrefix:         "",
 	}
 
 	appLogger := NewAppLogger()
