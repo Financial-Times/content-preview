@@ -3,31 +3,33 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: {{ .Values.service.name }} 
+  name: {{ .Values.service.name }}
   labels:
     chart: "{{ .Chart.Name | trunc 63 }}"
-    chartVersion: "{{ .Chart.Version | trunc 63 }}" 
-    visualize: "true" 
-    app: {{ .Values.service.name }} 
+    chartVersion: "{{ .Chart.Version | trunc 63 }}"
+    visualize: "true"
+    app: {{ .Values.service.name }}
 spec:
-  replicas: {{ .Values.replicaCount }} 
-  selector: 
+  replicas: {{ .Values.replicaCount }}
+  selector:
     matchLabels:
       app: {{ .Values.service.name }}
   template:
     metadata:
       labels:
         app: {{ .Values.service.name }}
-        visualize: "true" 
+        visualize: "true"
     spec:
-      containers: 
-      - name: {{ .Values.service.name }} 
+      containers:
+      - name: {{ .Values.service.name }}
         image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        env: 
+        env:
         - name: APP_PORT
           value: "8080"
         - name: APP_NAME
+          value: {{ .Values.service.name }}
+        - name: APP_SYSTEM_CODE
           value: {{ .Values.service.name }}
         - name: BUSINESS_IMPACT
           value: {{ .Values.env.BUSINESS_IMPACT }}
@@ -65,18 +67,18 @@ spec:
               key: methode.authorization_key
         - name: SOURCE_APP_PANIC_GUIDE
           value: https://dewey.ft.com/up-mapi.html
-        ports: 
-        - containerPort: 8080 
+        ports:
+        - containerPort: 8080
         - containerPort: 8081
-        livenessProbe: 
-          tcpSocket: 
-            port: 8080 
-          initialDelaySeconds: 10 
-        readinessProbe: 
-          httpGet: 
-            path: "/__gtg" 
-            port: 8080 
+        livenessProbe:
+          tcpSocket:
+            port: 8080
           initialDelaySeconds: 10
-          periodSeconds: 30 
-        resources: 
+        readinessProbe:
+          httpGet:
+            path: "/__gtg"
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
 {{ toYaml .Values.resources | indent 12 }}
