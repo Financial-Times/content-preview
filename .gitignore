@@ -4,4 +4,5 @@
 *coverage.*
 *.iml
 .idea/
-vendor/*/**
+/vendor/*
+!/vendor/vendor.json

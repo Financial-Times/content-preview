@@ -58,21 +58,15 @@ func main() {
 		Desc:   "URI of the Native Content Source Application health endpoint",
 		EnvVar: "SOURCE_APP_HEALTH_URI",
 	})
-	transformAppHostHeader := app.String(cli.StringOpt{
-		Name:   "transform-app-host-header",
-		Value:  "methode-article-transformer",
-		Desc:   "Transform Application Host Header",
-		EnvVar: "TRANSFORM_APP_HOST_HEADER",
-	})
 	transformAppUri := app.String(cli.StringOpt{
 		Name:   "transform-app-uri",
-		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/map/",
+		Value:  "http://localhost:8080/__methode-article-transformer/map/",
 		Desc:   "URI of the Transform Application endpoint",
 		EnvVar: "TRANSFORM_APP_URI",
 	})
 	transformAppHealthUri := app.String(cli.StringOpt{
 		Name:   "transform-app-health-uri",
-		Value:  "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info",
+		Value:  "http://localhost:8080/__methode-article-transformer/build-info",
 		Desc:   "URI of the Transform Application health endpoint",
 		EnvVar: "TRANSFORM_APP_HEALTH_URI",
 	})
@@ -126,23 +120,23 @@ func main() {
 	})
 	app.Action = func() {
 		sc := ServiceConfig{
-			*appSystemCode,
-			*appName,
-			*appPort,
-			*sourceAppAuth,
-			*transformAppHostHeader,
-			*sourceAppUri,
-			*transformAppUri,
-			*sourceAppHealthUri,
-			*transformAppHealthUri,
-			*sourceAppName,
-			*transformAppName,
-			*sourceAppPanicGuide,
-			*transformAppPanicGuide,
-			*businessImpact,
-			*graphiteTCPAddress,
-			*graphitePrefix,
+			appSystemCode:          *appSystemCode,
+			appName:                *appName,
+			appPort:                *appPort,
+			sourceAppName:          *sourceAppName,
+			sourceAppAuth:          *sourceAppAuth,
+			sourceAppUri:           *sourceAppUri,
+			sourceAppHealthUri:     *sourceAppHealthUri,
+			sourceAppPanicGuide:    *sourceAppPanicGuide,
+			transformAppName:       *transformAppName,
+			transformAppUri:        *transformAppUri,
+			transformAppHealthUri:  *transformAppHealthUri,
+			transformAppPanicGuide: *transformAppPanicGuide,
+			businessImpact:         *businessImpact,
+			graphiteTCPAddress:     *graphiteTCPAddress,
+			graphitePrefix:         *graphitePrefix,
 		}
+
 		appLogger := NewAppLogger()
 		metricsHandler := NewMetrics()
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
@@ -178,15 +172,14 @@ type ServiceConfig struct {
 	appSystemCode          string
 	appName                string
 	appPort                string
-	sourceAppAuth          string
-	transformAppHostHeader string
-	sourceAppUri           string
-	transformAppUri        string
-	sourceAppHealthUri     string
-	transformAppHealthUri  string
 	sourceAppName          string
-	transformAppName       string
+	sourceAppAuth          string
+	sourceAppUri           string
+	sourceAppHealthUri     string
 	sourceAppPanicGuide    string
+	transformAppName       string
+	transformAppUri        string
+	transformAppHealthUri  string
 	transformAppPanicGuide string
 	businessImpact         string
 	graphiteTCPAddress     string
