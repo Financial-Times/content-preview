@@ -9,6 +9,8 @@ image:
   repository: coco/content-preview
   pullPolicy: IfNotPresent
 resources:
+  requests:
+    memory: 20Mi
   limits:
     memory: 256Mi
 env:

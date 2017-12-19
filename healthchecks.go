@@ -36,17 +36,26 @@ func (sc *ServiceConfig) transformerServiceCheck() fthealth.Check {
 }
 
 func (sc *ServiceConfig) gtgCheck() gtg.Status {
-	msg, err := checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth)
-	if err != nil {
-		return gtg.Status{GoodToGo: false, Message: msg}
+	sourceCheck := func() gtg.Status {
+		msg, err := checkServiceAvailability(sc.sourceAppName, sc.sourceAppHealthUri, sc.sourceAppAuth)
+		if err != nil {
+			return gtg.Status{GoodToGo: false, Message: msg}
+		}
+		return gtg.Status{GoodToGo: true}
+	}
+	transformerCheck := func() gtg.Status {
+		msg, err := checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "")
+		if err != nil {
+			return gtg.Status{GoodToGo: false, Message: msg}
+		}
+
+		return gtg.Status{GoodToGo: true}
 	}
 
-	msg, err = checkServiceAvailability(sc.transformAppName, sc.transformAppHealthUri, "")
-	if err != nil {
-		return gtg.Status{GoodToGo: false, Message: msg}
-	}
-
-	return gtg.Status{GoodToGo: true}
+	return gtg.FailFastParallelCheck([]gtg.StatusChecker{
+		sourceCheck,
+		transformerCheck,
+	})()
 }
 
 func checkServiceAvailability(serviceName string, healthUri string, auth string) (string, error) {
