@@ -7,12 +7,11 @@ import (
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	oldhttphandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
-	"github.com/Financial-Times/service-status-go/gtg"
 	"github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
+	"github.com/sirupsen/logrus"
 )
 
 const serviceDescription = "A RESTful API for retrieving and transforming content to preview data"
@@ -158,10 +157,13 @@ func setupServiceHandler(sc ServiceConfig, metricsHandler Metrics, contentHandle
 	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
 
-	gtgHandler := httphandlers.NewGoodToGoHandler(gtg.StatusChecker(sc.gtgCheck))
+	gtgHandler := httphandlers.NewGoodToGoHandler(sc.gtgCheck)
 	r.Path(httphandlers.GTGPath).HandlerFunc(gtgHandler)
 
-	hc := fthealth.HealthCheck{SystemCode: sc.appSystemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck(), sc.transformerServiceCheck()}}
+	hc := fthealth.TimedHealthCheck{
+		HealthCheck: fthealth.HealthCheck{SystemCode: sc.appSystemCode, Description: serviceDescription, Name: sc.appName, Checks: []fthealth.Check{sc.nativeContentSourceCheck(), sc.transformerServiceCheck()}},
+		Timeout:     10 * time.Second,
+	}
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(fthealth.Handler(&hc))})
 
 	r.Path("/__metrics").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(metricsHttpEndpoint)})
