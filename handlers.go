@@ -55,7 +55,7 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err = client.Do(req)
 
-	return h.handleResponse(req, resp, err, w, uuid)
+	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.sourceAppName)
 }
 
 func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (bool, *http.Response) {
@@ -73,24 +73,24 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err := client.Do(req)
 
-	return h.handleResponse(req, resp, err, w, uuid)
+	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.transformAppName)
 }
 
-func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid string) (bool, *http.Response) {
+func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) (bool, *http.Response) {
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err != nil {
-		h.handleError(w, err, h.serviceConfig.transformAppName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
+		h.handleError(w, err, calledServiceName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
 		return false, nil
 	}
 	switch extResp.StatusCode {
 	case http.StatusOK:
-		h.log.ResponseEvent(h.serviceConfig.transformAppName, req.URL.String(), extResp, uuid)
+		h.log.ResponseEvent(calledServiceName, req.URL.String(), extResp, uuid)
 		return true, extResp
 	case http.StatusNotFound:
-		h.handleNotFound(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
+		h.handleNotFound(w, extResp, calledServiceName, req.URL.String(), uuid)
 		return false, nil
 	default:
-		h.handleFailedRequest(w, extResp, h.serviceConfig.transformAppName, req.URL.String(), uuid)
+		h.handleFailedRequest(w, extResp, calledServiceName, req.URL.String(), uuid)
 		return false, nil
 	}
 }
