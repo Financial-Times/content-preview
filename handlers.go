@@ -8,6 +8,7 @@ import (
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
+	"encoding/json"
 )
 
 const uuidKey = "uuid"
@@ -86,11 +87,13 @@ func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response
 	case http.StatusOK:
 		h.log.ResponseEvent(calledServiceName, req.URL.String(), extResp, uuid)
 		return true, extResp
+	case http.StatusUnprocessableEntity:
+		fallthrough
 	case http.StatusNotFound:
-		h.handleNotFound(w, extResp, calledServiceName, req.URL.String(), uuid)
+		h.handleClientError(w, calledServiceName, req.URL.String(), extResp, uuid)
 		return false, nil
 	default:
-		h.handleFailedRequest(w, extResp, calledServiceName, req.URL.String(), uuid)
+		h.handleFailedRequest(w, calledServiceName, req.URL.String(), extResp, uuid)
 		return false, nil
 	}
 }
@@ -101,14 +104,28 @@ func (h ContentHandler) handleError(w http.ResponseWriter, err error, serviceNam
 	h.metrics.recordErrorEvent()
 }
 
-func (h ContentHandler) handleFailedRequest(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
+func (h ContentHandler) handleFailedRequest(w http.ResponseWriter, serviceName string, url string, resp *http.Response, uuid string) {
 	w.WriteHeader(http.StatusServiceUnavailable)
 	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
 	h.metrics.recordRequestFailedEvent()
 }
 
-func (h ContentHandler) handleNotFound(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
-	w.WriteHeader(http.StatusNotFound)
+func (h ContentHandler) handleClientError(w http.ResponseWriter, serviceName string, url string, resp *http.Response, uuid string) {
+	status := resp.StatusCode
+	w.WriteHeader(status)
+
+	msg := make(map[string]string)
+	switch status {
+	case http.StatusUnprocessableEntity:
+		msg["message"] = "Unable to map content"
+	case http.StatusNotFound:
+		msg["message"] = "Content not found"
+	default:
+		msg["message"] = fmt.Sprintf("Unexpected error, call to %s returned HTTP status %v.", serviceName, status)
+	}
+	by, _ := json.Marshal(msg)
+	w.Write(by)
+
 	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
 	h.metrics.recordRequestFailedEvent()
 }
