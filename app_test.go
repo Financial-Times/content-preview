@@ -28,6 +28,7 @@ const (
 var contentPreviewService *httptest.Server
 var methodeApiMock *httptest.Server
 var methodeArticleTransformerMock *httptest.Server
+var methodeApiAuth string
 
 func startMethodeApiMock(status string) {
 	r := mux.NewRouter()
@@ -53,7 +54,7 @@ func methodeApiHandlerMock(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(tid.TransactionIDHeader, "tid_w58gqvazux")
 	}
 
-	if r.Header.Get("Authorization") == "Basic default" {
+	if r.Header.Get("Authorization") == "Basic " + methodeApiAuth {
 		switch uuid {
 		case previewableUuid:
 			file, err := os.Open("test-resources/methode-api-output.json")
@@ -146,6 +147,7 @@ func stopServices() {
 }
 
 func startContentPreviewService() {
+	methodeApiAuth = "default"
 	methodeApiUrl := methodeApiMock.URL + "/eom-file/"
 	nativeContentAppHealthUri := methodeApiMock.URL + "/build-info"
 	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/map"
@@ -156,7 +158,7 @@ func startContentPreviewService() {
 		appName:                "Content Preview",
 		appPort:                "8084",
 		sourceAppName:          sourceAppName,
-		sourceAppAuth:          "default",
+		sourceAppAuth:          methodeApiAuth,
 		sourceAppUri:           methodeApiUrl,
 		sourceAppHealthUri:     nativeContentAppHealthUri,
 		sourceAppPanicGuide:    "panic guide",
@@ -239,6 +241,23 @@ func TestShouldReturn422(t *testing.T) {
 	assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "Response status")
 
 	contentPreviewService.Close()
+}
+
+func TestInvalidAuth(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	methodeApiAuth = "frodo"
+
+	resp, err := http.Get(contentPreviewService.URL + "/content-preview/" + previewableUuid)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, 5, resp.StatusCode / 100, "Response status should be 5xx")
 }
 
 func TestShouldReturn503whenMethodeApiIsNotHappy(t *testing.T) {
