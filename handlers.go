@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,7 +10,6 @@ import (
 	tid "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
-	"encoding/json"
 )
 
 const uuidKey = "uuid"
@@ -26,22 +27,24 @@ func (h ContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
 	ctx = context.WithValue(ctx, uuidKey, uuid)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	success, nativeContentSourceAppResponse := h.getNativeContent(ctx, w)
 
-	if !success {
+	nativeContentSourceAppResponse, err := h.getNativeContent(ctx, w)
+	if err != nil {
 		return
 	}
-	success, transformAppResponse := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
-	if !success {
-		nativeContentSourceAppResponse.Body.Close()
+	defer nativeContentSourceAppResponse.Body.Close()
+
+	transformAppResponse, err := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
+	if err != nil {
 		return
 	}
+	defer transformAppResponse.Body.Close()
+
 	io.Copy(w, transformAppResponse.Body)
-	transformAppResponse.Body.Close()
 	h.metrics.recordResponseEvent()
 }
 
-func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWriter) (*http.Response, error) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.sourceAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
@@ -54,12 +57,12 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	req.Header.Set("Authorization", "Basic "+h.serviceConfig.sourceAppAuth)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "UPP Content Preview")
-	resp, err = client.Do(req)
+	resp, err := client.Do(req)
 
 	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.sourceAppName)
 }
 
-func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (bool, *http.Response) {
+func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (*http.Response, error) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s?preview=true", h.serviceConfig.transformAppUri)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
@@ -77,24 +80,24 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.transformAppName)
 }
 
-func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) (bool, *http.Response) {
+func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) (*http.Response, error) {
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err != nil {
 		h.handleError(w, err, calledServiceName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
-		return false, nil
+		return nil, err
 	}
 	switch extResp.StatusCode {
 	case http.StatusOK:
 		h.log.ResponseEvent(calledServiceName, req.URL.String(), extResp, uuid)
-		return true, extResp
+		return extResp, nil
 	case http.StatusUnprocessableEntity:
 		fallthrough
 	case http.StatusNotFound:
 		h.handleClientError(w, calledServiceName, req.URL.String(), extResp, uuid)
-		return false, nil
+		return nil, errors.New("not found")
 	default:
 		h.handleFailedRequest(w, calledServiceName, req.URL.String(), extResp, uuid)
-		return false, nil
+		return nil, errors.New("request failed")
 	}
 }
 
