@@ -59,7 +59,16 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err := client.Do(req)
 
-	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.sourceAppName)
+	err = h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.sourceAppName)
+	if err != nil {
+		if resp != nil {
+			// close now and don't return the resp
+			resp.Body.Close()
+			resp = nil
+		}
+	}
+
+	return resp, err
 }
 
 func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (*http.Response, error) {
@@ -77,27 +86,36 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err := client.Do(req)
 
-	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.transformAppName)
+	err = h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.transformAppName)
+	if err != nil {
+		if resp != nil {
+			// close now and don't return the resp
+			resp.Body.Close()
+			resp = nil
+		}
+	}
+
+	return resp, err
 }
 
-func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) (*http.Response, error) {
+func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) error {
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err != nil {
 		h.handleError(w, err, calledServiceName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
-		return nil, err
+		return err
 	}
 	switch extResp.StatusCode {
 	case http.StatusOK:
 		h.log.ResponseEvent(calledServiceName, req.URL.String(), extResp, uuid)
-		return extResp, nil
+		return nil
 	case http.StatusUnprocessableEntity:
 		fallthrough
 	case http.StatusNotFound:
 		h.handleClientError(w, calledServiceName, req.URL.String(), extResp, uuid)
-		return nil, errors.New("not found")
+		return errors.New("not found")
 	default:
 		h.handleFailedRequest(w, calledServiceName, req.URL.String(), extResp, uuid)
-		return nil, errors.New("request failed")
+		return errors.New("request failed")
 	}
 }
 
@@ -120,9 +138,9 @@ func (h ContentHandler) handleClientError(w http.ResponseWriter, serviceName str
 	msg := make(map[string]string)
 	switch status {
 	case http.StatusUnprocessableEntity:
-		msg["message"] = "Unable to map content"
+		msg["message"] = "Unable to map content for preview."
 	case http.StatusNotFound:
-		msg["message"] = "Content not found"
+		msg["message"] = "Content not found."
 	default:
 		msg["message"] = fmt.Sprintf("Unexpected error, call to %s returned HTTP status %v.", serviceName, status)
 	}
