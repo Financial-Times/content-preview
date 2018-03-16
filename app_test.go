@@ -18,12 +18,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	sourceAppName    = "Native Content Service"
+	transformAppName = "Native Content Transformer Service"
+	previewableUuid  = "d7db73ec-cf53-11e5-92a1-c5e23ef99c77"
+	unpreviewableUuid = "b82cc800-87c1-4983-83d2-0bd677f49b2b"
+)
+
 var contentPreviewService *httptest.Server
 var methodeApiMock *httptest.Server
 var methodeArticleTransformerMock *httptest.Server
-
-const sourceAppName = "Native Content Service"
-const transformAppName = "Native Content Transformer Service"
+var methodeApiAuth string
 
 func startMethodeApiMock(status string) {
 	r := mux.NewRouter()
@@ -49,18 +54,26 @@ func methodeApiHandlerMock(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(tid.TransactionIDHeader, "tid_w58gqvazux")
 	}
 
-	if r.Header.Get("Authorization") == "Basic default" && uuid == "d7db73ec-cf53-11e5-92a1-c5e23ef99c77" {
-		file, err := os.Open("test-resources/methode-api-output.json")
-		if err != nil {
-			return
-		}
-		defer file.Close()
-		io.Copy(w, file)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode("{\"message\":\"404 Not Found - null\"}")
-	}
+	if r.Header.Get("Authorization") == "Basic " + methodeApiAuth {
+		switch uuid {
+		case previewableUuid:
+			file, err := os.Open("test-resources/methode-api-output.json")
+			if err != nil {
+				return
+			}
+			defer file.Close()
+			io.Copy(w, file)
 
+		case unpreviewableUuid:
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			json.NewEncoder(w).Encode("{\"message\":\"422 Unprocessable entity\"}")
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode("{\"message\":\"404 Not Found - null\"}")
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
 }
 
 func unhappyHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +116,7 @@ func methodeArticleTransformerHandlerMock(w http.ResponseWriter, r *http.Request
 		w.Header().Set(tid.TransactionIDHeader, "tid_w58gqvazux")
 	}
 
-	if shortF.Uuid == "d7db73ec-cf53-11e5-92a1-c5e23ef99c77" {
+	if shortF.Uuid == previewableUuid {
 		file, err := os.Open("test-resources/methode-article-transformer-output.json")
 		if err != nil {
 			return
@@ -134,6 +147,7 @@ func stopServices() {
 }
 
 func startContentPreviewService() {
+	methodeApiAuth = "default"
 	methodeApiUrl := methodeApiMock.URL + "/eom-file/"
 	nativeContentAppHealthUri := methodeApiMock.URL + "/build-info"
 	methodArticleTransformerUrl := methodeArticleTransformerMock.URL + "/map"
@@ -144,7 +158,7 @@ func startContentPreviewService() {
 		appName:                "Content Preview",
 		appPort:                "8084",
 		sourceAppName:          sourceAppName,
-		sourceAppAuth:          "default",
+		sourceAppAuth:          methodeApiAuth,
 		sourceAppUri:           methodeApiUrl,
 		sourceAppHealthUri:     nativeContentAppHealthUri,
 		sourceAppPanicGuide:    "panic guide",
@@ -171,7 +185,7 @@ func TestShouldReturn200AndTransformerOutput(t *testing.T) {
 	startMethodeArticleTransformerMock("happy")
 	startContentPreviewService()
 	defer stopServices()
-	resp, err := http.Get(contentPreviewService.URL + "/content-preview/d7db73ec-cf53-11e5-92a1-c5e23ef99c77")
+	resp, err := http.Get(contentPreviewService.URL + "/content-preview/" + previewableUuid)
 	if err != nil {
 		panic(err)
 	}
@@ -210,6 +224,40 @@ func TestShouldReturn404(t *testing.T) {
 
 	contentPreviewService.Close()
 
+}
+
+func TestShouldReturn422(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	resp, err := http.Get(contentPreviewService.URL + "/content-preview/" + unpreviewableUuid)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "Response status")
+
+	contentPreviewService.Close()
+}
+
+func TestInvalidAuth(t *testing.T) {
+	startMethodeApiMock("happy")
+	startMethodeArticleTransformerMock("happy")
+	startContentPreviewService()
+	defer stopServices()
+
+	methodeApiAuth = "frodo"
+
+	resp, err := http.Get(contentPreviewService.URL + "/content-preview/" + previewableUuid)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, 5, resp.StatusCode / 100, "Response status should be 5xx")
 }
 
 func TestShouldReturn503whenMethodeApiIsNotHappy(t *testing.T) {

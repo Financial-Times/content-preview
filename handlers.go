@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,22 +27,24 @@ func (h ContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := tid.TransactionAwareContext(context.Background(), r.Header.Get(tid.TransactionIDHeader))
 	ctx = context.WithValue(ctx, uuidKey, uuid)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	success, nativeContentSourceAppResponse := h.getNativeContent(ctx, w)
 
-	if !success {
+	nativeContentSourceAppResponse, err := h.getNativeContent(ctx, w)
+	if err != nil {
 		return
 	}
-	success, transformAppResponse := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
-	if !success {
-		nativeContentSourceAppResponse.Body.Close()
+	defer nativeContentSourceAppResponse.Body.Close()
+
+	transformAppResponse, err := h.getTransformedContent(ctx, *nativeContentSourceAppResponse, w)
+	if err != nil {
 		return
 	}
+	defer transformAppResponse.Body.Close()
+
 	io.Copy(w, transformAppResponse.Body)
-	transformAppResponse.Body.Close()
 	h.metrics.recordResponseEvent()
 }
 
-func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWriter) (ok bool, resp *http.Response) {
+func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWriter) (*http.Response, error) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s%s", h.serviceConfig.sourceAppUri, uuid)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
@@ -53,12 +57,21 @@ func (h ContentHandler) getNativeContent(ctx context.Context, w http.ResponseWri
 	req.Header.Set("Authorization", "Basic "+h.serviceConfig.sourceAppAuth)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "UPP Content Preview")
-	resp, err = client.Do(req)
+	resp, err := client.Do(req)
 
-	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.sourceAppName)
+	err = h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.sourceAppName)
+	if err != nil {
+		if resp != nil {
+			// close now and don't return the resp
+			resp.Body.Close()
+			resp = nil
+		}
+	}
+
+	return resp, err
 }
 
-func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (bool, *http.Response) {
+func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContentSourceAppResponse http.Response, w http.ResponseWriter) (*http.Response, error) {
 	uuid := ctx.Value(uuidKey).(string)
 	requestUrl := fmt.Sprintf("%s?preview=true", h.serviceConfig.transformAppUri)
 	transactionId, _ := tid.GetTransactionIDFromContext(ctx)
@@ -73,25 +86,36 @@ func (h ContentHandler) getTransformedContent(ctx context.Context, nativeContent
 	req.Header.Set("User-Agent", "UPP Content Preview")
 	resp, err := client.Do(req)
 
-	return h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.transformAppName)
+	err = h.handleResponse(req, resp, err, w, uuid, h.serviceConfig.transformAppName)
+	if err != nil {
+		if resp != nil {
+			// close now and don't return the resp
+			resp.Body.Close()
+			resp = nil
+		}
+	}
+
+	return resp, err
 }
 
-func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) (bool, *http.Response) {
+func (h ContentHandler) handleResponse(req *http.Request, extResp *http.Response, err error, w http.ResponseWriter, uuid, calledServiceName string) error {
 	//this happens when hostname cannot be resolved or host is not accessible
 	if err != nil {
 		h.handleError(w, err, calledServiceName, req.URL.String(), req.Header.Get(tid.TransactionIDHeader), uuid)
-		return false, nil
+		return err
 	}
 	switch extResp.StatusCode {
 	case http.StatusOK:
 		h.log.ResponseEvent(calledServiceName, req.URL.String(), extResp, uuid)
-		return true, extResp
+		return nil
+	case http.StatusUnprocessableEntity:
+		fallthrough
 	case http.StatusNotFound:
-		h.handleNotFound(w, extResp, calledServiceName, req.URL.String(), uuid)
-		return false, nil
+		h.handleClientError(w, calledServiceName, req.URL.String(), extResp, uuid)
+		return errors.New("not found")
 	default:
-		h.handleFailedRequest(w, extResp, calledServiceName, req.URL.String(), uuid)
-		return false, nil
+		h.handleFailedRequest(w, calledServiceName, req.URL.String(), extResp, uuid)
+		return errors.New("request failed")
 	}
 }
 
@@ -101,14 +125,28 @@ func (h ContentHandler) handleError(w http.ResponseWriter, err error, serviceNam
 	h.metrics.recordErrorEvent()
 }
 
-func (h ContentHandler) handleFailedRequest(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
+func (h ContentHandler) handleFailedRequest(w http.ResponseWriter, serviceName string, url string, resp *http.Response, uuid string) {
 	w.WriteHeader(http.StatusServiceUnavailable)
 	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
 	h.metrics.recordRequestFailedEvent()
 }
 
-func (h ContentHandler) handleNotFound(w http.ResponseWriter, resp *http.Response, serviceName string, url string, uuid string) {
-	w.WriteHeader(http.StatusNotFound)
+func (h ContentHandler) handleClientError(w http.ResponseWriter, serviceName string, url string, resp *http.Response, uuid string) {
+	status := resp.StatusCode
+	w.WriteHeader(status)
+
+	msg := make(map[string]string)
+	switch status {
+	case http.StatusUnprocessableEntity:
+		msg["message"] = "Unable to map content for preview."
+	case http.StatusNotFound:
+		msg["message"] = "Content not found."
+	default:
+		msg["message"] = fmt.Sprintf("Unexpected error, call to %s returned HTTP status %v.", serviceName, status)
+	}
+	by, _ := json.Marshal(msg)
+	w.Write(by)
+
 	h.log.RequestFailedEvent(serviceName, url, resp, uuid)
 	h.metrics.recordRequestFailedEvent()
 }
