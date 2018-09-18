@@ -99,24 +99,6 @@ func main() {
 		Desc:   "Describe the business impact the dependent services would produce if one is broken.",
 		EnvVar: "BUSINESS_IMPACT",
 	})
-	graphiteTCPAddress := app.String(cli.StringOpt{
-		Name:   "graphite-tcp-address",
-		Value:  "",
-		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
-		EnvVar: "GRAPHITE_TCP_ADDRESS",
-	})
-	graphitePrefix := app.String(cli.StringOpt{
-		Name:   "graphite-prefix",
-		Value:  "coco.services.$ENV.content-preview.0",
-		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.sections-rw-neo4j.1",
-		EnvVar: "GRAPHITE_PREFIX",
-	})
-	logMetrics := app.Bool(cli.BoolOpt{
-		Name:   "log-metrics",
-		Value:  false,
-		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
-		EnvVar: "LOG_METRICS",
-	})
 	app.Action = func() {
 		sc := ServiceConfig{
 			appSystemCode:          *appSystemCode,
@@ -132,8 +114,6 @@ func main() {
 			transformAppHealthUri:  *transformAppHealthUri,
 			transformAppPanicGuide: *transformAppPanicGuide,
 			businessImpact:         *businessImpact,
-			graphiteTCPAddress:     *graphiteTCPAddress,
-			graphitePrefix:         *graphitePrefix,
 		}
 
 		appLogger := NewAppLogger()
@@ -141,7 +121,6 @@ func main() {
 		contentHandler := ContentHandler{&sc, appLogger, &metricsHandler}
 		h := setupServiceHandler(sc, metricsHandler, contentHandler)
 		appLogger.ServiceStartedEvent(*appSystemCode, sc.asMap())
-		metricsHandler.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		err := http.ListenAndServe(":"+*appPort, h)
 		if err != nil {
 			logrus.Fatalf("Unable to start server: %v", err)
@@ -184,8 +163,6 @@ type ServiceConfig struct {
 	transformAppHealthUri  string
 	transformAppPanicGuide string
 	businessImpact         string
-	graphiteTCPAddress     string
-	graphitePrefix         string
 }
 
 func (sc ServiceConfig) asMap() map[string]interface{} {
@@ -202,7 +179,5 @@ func (sc ServiceConfig) asMap() map[string]interface{} {
 		"source-app-panic-guide":    sc.sourceAppPanicGuide,
 		"transform-app-panic-guide": sc.transformAppPanicGuide,
 		"business-impact":           sc.businessImpact,
-		"graphite-tcp-address":      sc.graphiteTCPAddress,
-		"graphite-prefix":           sc.graphitePrefix,
 	}
 }

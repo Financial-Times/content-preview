@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	sourceAppName    = "Native Content Service"
-	transformAppName = "Native Content Transformer Service"
-	previewableUuid  = "d7db73ec-cf53-11e5-92a1-c5e23ef99c77"
+	sourceAppName     = "Native Content Service"
+	transformAppName  = "Native Content Transformer Service"
+	previewableUuid   = "d7db73ec-cf53-11e5-92a1-c5e23ef99c77"
 	unpreviewableUuid = "b82cc800-87c1-4983-83d2-0bd677f49b2b"
 )
 
@@ -54,7 +54,7 @@ func methodeApiHandlerMock(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(tid.TransactionIDHeader, "tid_w58gqvazux")
 	}
 
-	if r.Header.Get("Authorization") == "Basic " + methodeApiAuth {
+	if r.Header.Get("Authorization") == "Basic "+methodeApiAuth {
 		switch uuid {
 		case previewableUuid:
 			file, err := os.Open("test-resources/methode-api-output.json")
@@ -167,8 +167,6 @@ func startContentPreviewService() {
 		transformAppHealthUri:  transformAppHealthUrl,
 		transformAppPanicGuide: "panic guide",
 		businessImpact:         "business impact",
-		graphiteTCPAddress:     "",
-		graphitePrefix:         "",
 	}
 
 	appLogger := NewAppLogger()
@@ -257,7 +255,7 @@ func TestInvalidAuth(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	assert.Equal(t, 5, resp.StatusCode / 100, "Response status should be 5xx")
+	assert.Equal(t, 5, resp.StatusCode/100, "Response status should be 5xx")
 }
 
 func TestShouldReturn503whenMethodeApiIsNotHappy(t *testing.T) {

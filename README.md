@@ -45,8 +45,6 @@ $GOPATH/bin/content-preview \
 --transform-app-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/map/" \
 --transform-app-health-uri "http://methode-article-transformer-01-iw-uk-p.svc.ft.com/build-info" \
 --transform-app-panic-guide "https://sites.google.com/a/ft.com/dynamic-publishing-team/methode-article-transformer-panic-guide" \
---graphite-tcp-address "graphite.ft.com:2003" \
---graphite-prefix "coco.services.$ENV.content-preview.%i"
 ```
 
 With Docker:
@@ -66,8 +64,6 @@ With Docker:
 --env "TRANSFORM_APP_URI=http://$HOSTNAME:8080/map/" \
 --env "TRANSFORM_APP_HEALTH_URI=http://$HOSTNAME:8080/__health" \
 --env "TRANSFORM_APP_PANIC_GUIDE=https://sites.google.com/a/ft.com/dynamic-publishing-team/methode-article-transformer-panic-guide" \
---env "GRAPHITE_TCP_ADDRESS=graphite.ft.com:2003" \
---env "GRAPHITE_PREFIX=coco.services.$ENV.content-preview.%i" \
 coco/content-preview
 `
 
