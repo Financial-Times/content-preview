@@ -1,7 +1,7 @@
 # Values used for the deployed application.
 service:
   name: content-preview
- eksCluster: true
+eksCluster: true
 env:
   BUSINESS_IMPACT: "Editorial users won't be able to preview articles"
   TRANSFORM_APP_URI: http://methode-article-mapper:8080/map
