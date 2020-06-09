@@ -1,0 +1,10 @@
+# Values used for the deployed application.
+service:
+  name: content-preview
+ eksCluster: true
+env:
+  BUSINESS_IMPACT: "Editorial users won't be able to preview articles"
+  TRANSFORM_APP_URI: http://methode-article-mapper:8080/map
+  TRANSFORM_APP_HEALTH_URI: http://methode-article-mapper:8080/__health
+  TRANSFORM_APP_NAME:  methode-article-mapper
+  TRANSFORM_APP_PANIC_GUIDE: https://dewey.ft.com/up-mam.html
