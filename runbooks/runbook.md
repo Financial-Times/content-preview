@@ -1,6 +1,6 @@
 # UPP - Content Preview
 
-Content Preview accesses unpublished content and previews it before publishing.
+Content Preview serves published and unpublished content from Methode CMS so that journalists can preview unpublished articles.
 
 ## Code
 
@@ -35,6 +35,7 @@ content
 - tsvetan.dimitrov
 - elina.kaneva
 - robert.marinov
+- georgi.ivanov
 
 ## Host Platform
 
@@ -56,7 +57,9 @@ No
 
 ## Dependencies
 
-- upp-neo4j-cluster
+- up-mam
+- up-maicm
+- up-mapi
 
 ## Failover Architecture Type
 
